@@ -1,6 +1,6 @@
 # CollabSpace
 
-A team collaboration app rebuilt as a learning project for Java and Spring Boot.
+A team collaboration app rebuilt with Java and Spring Boot with AI for learning purposes.
 
 ## Stack
 
