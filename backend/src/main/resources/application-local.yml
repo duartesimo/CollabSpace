@@ -3,3 +3,7 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/collabspace}
     username: ${SPRING_DATASOURCE_USERNAME:collabspace}
     password: ${SPRING_DATASOURCE_PASSWORD:collabspace}
+
+jwt:
+  secret: ${JWT_SECRET:collabspace-development-secret-key-change-me}
+  expiration-ms: ${JWT_EXPIRATION_MS:28800000}
