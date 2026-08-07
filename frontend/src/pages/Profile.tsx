@@ -34,17 +34,21 @@ export default function Profile() {
 
 	if (loading) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
-				<p className="text-gray-700">Loading profile…</p>
+			<div className="min-h-screen bg-slate-50 py-16">
+				<div className="mx-auto w-full max-w-xl px-4 text-center">
+					<p className="text-sm font-medium text-slate-500">Loading profile…</p>
+				</div>
 			</div>
 		)
 	}
 
 	if (error) {
 		return (
-			<div className="min-h-screen flex items-center justify-center bg-gray-50">
-				<div className="max-w-md p-6 bg-white rounded shadow">
-					<p className="text-red-700">{error}</p>
+			<div className="min-h-screen bg-slate-50 py-16">
+				<div className="mx-auto w-full max-w-xl px-4">
+					<div className="rounded-[2rem] border border-red-200 bg-white p-8 shadow-sm">
+						<p className="text-center text-red-700">{error}</p>
+					</div>
 				</div>
 			</div>
 		)
@@ -55,21 +59,29 @@ export default function Profile() {
 	}
 
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-gray-50">
-			<div className="w-full max-w-lg p-8 bg-white rounded shadow">
-				<h1 className="text-2xl font-semibold mb-4">Profile</h1>
-				<div className="space-y-4 text-gray-700">
-					<div>
-						<h2 className="text-sm font-medium text-gray-500">Username</h2>
-						<p className="mt-1 text-lg">{user.username}</p>
+		<div className="h-screen bg-slate-950 py-16 text-slate-100">
+			<div className="mx-auto w-full max-w-3xl px-4">
+				<div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-xl shadow-slate-200/50">
+					<div className="mb-8">
+						<p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-600">Account</p>
+						<h1 className="mt-4 text-3xl font-semibold text-slate-900">Your profile</h1>
+						<p className="mt-2 text-sm leading-6 text-slate-500">
+							This is your account information, powered by your authentication session.
+						</p>
 					</div>
-					<div>
-						<h2 className="text-sm font-medium text-gray-500">Email</h2>
-						<p className="mt-1 text-lg">{user.email}</p>
-					</div>
-					<div>
-						<h2 className="text-sm font-medium text-gray-500">Member since</h2>
-						<p className="mt-1 text-lg">{new Date(user.createdAt).toLocaleString()}</p>
+					<div className="grid gap-6 md:grid-cols-2">
+						<div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+							<p className="text-sm font-medium uppercase tracking-[0.3em] text-slate-500">Username</p>
+							<p className="mt-3 text-xl font-semibold text-slate-900">{user.username}</p>
+						</div>
+						<div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+							<p className="text-sm font-medium uppercase tracking-[0.3em] text-slate-500">Email</p>
+							<p className="mt-3 text-xl font-semibold text-slate-900">{user.email}</p>
+						</div>
+						<div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 md:col-span-2">
+							<p className="text-sm font-medium uppercase tracking-[0.3em] text-slate-500">Member since</p>
+							<p className="mt-3 text-xl font-semibold text-slate-900">{new Date(user.createdAt).toLocaleString()}</p>
+						</div>
 					</div>
 				</div>
 			</div>
