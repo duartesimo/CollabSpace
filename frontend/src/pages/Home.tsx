@@ -62,7 +62,12 @@ export default function Home() {
 				</div>
 
 				<div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-					<h2 className="text-xl font-semibold text-gray-900">Your Workspaces</h2>
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+						<h2 className="text-xl font-semibold text-gray-900">Your Workspaces</h2>
+						<Link to="/workspaces/new" className="inline-flex items-center justify-center rounded-md border border-indigo-600 bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+							Create Workspace
+						</Link>
+					</div>
 
 					{loading && <p className="mt-4 text-gray-600">Loading your workspaces...</p>}
 
