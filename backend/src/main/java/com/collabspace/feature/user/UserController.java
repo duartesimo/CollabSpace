@@ -6,6 +6,7 @@ import com.collabspace.feature.user.dto.UserResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,6 +42,13 @@ public class UserController {
 	public ResponseEntity<UserResponse> updateUser(@PathVariable Long id,
 			@Valid @RequestBody UpdateUserRequest request) {
 		User user = userService.updateUser(id, request);
+		return ResponseEntity.ok(mapToResponse(user));
+	}
+
+	@GetMapping("/me")
+	public ResponseEntity<UserResponse> getCurrentUser() {
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+		User user = userService.getCurrentUser(email);
 		return ResponseEntity.ok(mapToResponse(user));
 	}
 
