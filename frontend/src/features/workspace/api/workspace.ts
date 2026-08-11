@@ -10,3 +10,8 @@ export const createWorkspace = async (data: { name: string; description?: string
 	const response = await client.post<Workspace>('/workspaces', data)
 	return response.data
 }
+
+export const getWorkspace = async (id: number): Promise<Workspace> => {
+	const response = await client.get<Workspace>(`/workspaces/${id}`)
+	return response.data
+}

@@ -147,9 +147,10 @@ export default function Home() {
 					{!loading && !error && workspaces.length > 0 && (
 						<div className="grid gap-5 md:grid-cols-2">
 							{workspaces.map((workspace) => (
-								<div
+								<Link
 									key={workspace.id}
-									className="group rounded-3xl border border-slate-800 bg-slate-950/60 p-6 transition duration-200 hover:-translate-y-1 hover:border-indigo-500/40 hover:bg-slate-900"
+									to={`/workspaces/${workspace.id}`}
+									className="group block rounded-3xl border border-slate-800 bg-slate-950/60 p-6 transition duration-200 hover:-translate-y-1 hover:border-indigo-500/40 hover:bg-slate-900"
 								>
 									<div className="flex items-start justify-between gap-4">
 										<div>
@@ -182,7 +183,7 @@ export default function Home() {
 											Workspace →
 										</span>
 									</div>
-								</div>
+								</Link>
 							))}
 						</div>
 					)}

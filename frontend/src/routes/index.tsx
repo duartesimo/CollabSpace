@@ -5,6 +5,7 @@ import Login from '../pages/Login'
 import Register from '../pages/Register'
 import Profile from '../pages/Profile'
 import CreateWorkspace from '../pages/CreateWorkspace'
+import WorkspaceDetail from '../pages/WorkspaceDetail'
 import MainLayout from '../layouts/MainLayout'
 import ProtectedRoute from './ProtectedRoute'
 
@@ -20,6 +21,7 @@ export default function AppRoutes() {
 					<Route element={<ProtectedRoute />}>
 						<Route path="/profile" element={<Profile />} />
 						<Route path="/workspaces/new" element={<CreateWorkspace />} />
+						<Route path="/workspaces/:id" element={<WorkspaceDetail />} />
 					</Route>
 				</Route>
 			</Routes>
