@@ -26,3 +26,7 @@ export const addWorkspaceMember = async (workspaceId: number, email: string): Pr
 	const response = await client.post<WorkspaceMember>(`/workspaces/${workspaceId}/members`, { email })
 	return response.data
 }
+
+export const removeWorkspaceMember = async (workspaceId: number, userId: number): Promise<void> => {
+	await client.delete(`/workspaces/${workspaceId}/members/${userId}`)
+}

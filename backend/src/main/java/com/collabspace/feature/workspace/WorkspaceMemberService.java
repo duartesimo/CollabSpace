@@ -57,12 +57,10 @@ public class WorkspaceMemberService {
 		Workspace workspace = workspaceRepository.findById(workspaceId)
 				.orElseThrow(() -> new IllegalArgumentException("Workspace not found"));
 
-		WorkspaceMember ownerMembership = workspaceMemberRepository.findByWorkspaceAndUser(workspace, currentUser)
+		WorkspaceMember currentMembership = workspaceMemberRepository.findByWorkspaceAndUser(workspace, currentUser)
 				.orElseThrow(() -> new IllegalArgumentException("You are not a member of this workspace"));
 
-		if (ownerMembership.getRole() != WorkspaceRole.OWNER) {
-			throw new IllegalArgumentException("Only the workspace owner can add members");
-		}
+		ensureOwner(currentMembership, "Only the workspace owner can add members");
 
 		User userToAdd = userRepository.findByEmail(request.getEmail())
 				.orElseThrow(() -> new IllegalArgumentException("User not found"));
@@ -79,6 +77,38 @@ public class WorkspaceMemberService {
 
 		WorkspaceMember savedMember = workspaceMemberRepository.save(member);
 		return mapToResponse(savedMember);
+	}
+
+	@Transactional
+	public void removeMember(String email, Long workspaceId, Long userId) {
+		User currentUser = userRepository.findByEmail(email)
+				.orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+		Workspace workspace = workspaceRepository.findById(workspaceId)
+				.orElseThrow(() -> new IllegalArgumentException("Workspace not found"));
+
+		WorkspaceMember currentMembership = workspaceMemberRepository.findByWorkspaceAndUser(workspace, currentUser)
+				.orElseThrow(() -> new IllegalArgumentException("You are not a member of this workspace"));
+
+		ensureOwner(currentMembership, "Only the workspace owner can remove members");
+
+		User userToRemove = userRepository.findById(userId)
+				.orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+		WorkspaceMember targetMembership = workspaceMemberRepository.findByWorkspaceAndUser(workspace, userToRemove)
+				.orElseThrow(() -> new IllegalArgumentException("User is not a member of this workspace"));
+
+		if (targetMembership.getRole() == WorkspaceRole.OWNER) {
+			throw new IllegalArgumentException("The workspace owner cannot be removed");
+		}
+
+		workspaceMemberRepository.delete(targetMembership);
+	}
+
+	private void ensureOwner(WorkspaceMember membership, String message) {
+		if (membership.getRole() != WorkspaceRole.OWNER) {
+			throw new IllegalArgumentException(message);
+		}
 	}
 
 	private WorkspaceMemberResponse mapToResponse(WorkspaceMember workspaceMember) {

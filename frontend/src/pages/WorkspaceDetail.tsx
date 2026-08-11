@@ -1,8 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { addWorkspaceMember, getWorkspace, getWorkspaceMembers } from '../features/workspace/api/workspace'
+import client from '../api/client'
+import { addWorkspaceMember, getWorkspace, getWorkspaceMembers, removeWorkspaceMember } from '../features/workspace/api/workspace'
 import type { Workspace } from '../features/workspace/types/Workspace'
 import type { WorkspaceMember } from '../features/workspace/types/WorkspaceMember'
+
+interface CurrentUserResponse {
+	id: number
+	username: string
+	email: string
+	createdAt: string
+}
 
 export default function WorkspaceDetail() {
 	const { id } = useParams<{ id: string }>()
@@ -29,6 +37,22 @@ export default function WorkspaceDetail() {
 	const [memberEmail, setMemberEmail] = useState('')
 	const [submittingMember, setSubmittingMember] = useState(false)
 	const [memberSubmitError, setMemberSubmitError] = useState<string | null>(null)
+	const [removingMemberId, setRemovingMemberId] = useState<number | null>(null)
+	const [removeMemberError, setRemoveMemberError] = useState<string | null>(null)
+	const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+
+	useEffect(() => {
+		const fetchCurrentUser = async () => {
+			try {
+				const response = await client.get<CurrentUserResponse>('/users/me')
+				setCurrentUserId(response.data.id)
+			} catch {
+				setCurrentUserId(null)
+			}
+		}
+
+		void fetchCurrentUser()
+	}, [])
 
 	useEffect(() => {
 		if (workspaceId === null) {
@@ -104,13 +128,38 @@ export default function WorkspaceDetail() {
 			setMemberEmail('')
 		} catch (err) {
 			const apiMessage = (err as any)?.response?.data?.message
-			setMemberSubmitError(
-				apiMessage || 'Unable to add this member right now.'
-			)
+			setMemberSubmitError(apiMessage || 'Unable to add this member right now.')
 		} finally {
 			setSubmittingMember(false)
 		}
 	}
+
+	const handleRemoveMember = async (memberId: number) => {
+		if (workspaceId === null) {
+			return
+		}
+
+		setRemovingMemberId(memberId)
+		setRemoveMemberError(null)
+
+		try {
+			await removeWorkspaceMember(workspaceId, memberId)
+			setMembers((currentMembers) => currentMembers.filter((member) => member.userId !== memberId))
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setRemoveMemberError(apiMessage || 'Unable to remove this member right now.')
+		} finally {
+			setRemovingMemberId(null)
+		}
+	}
+
+	const isCurrentUserOwner =
+		currentUserId !== null &&
+		members.some(
+			(member) =>
+				member.userId === currentUserId &&
+				member.role === 'OWNER'
+		)
 
 	return (
 		<div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
@@ -182,27 +231,35 @@ export default function WorkspaceDetail() {
 										</p>
 									</div>
 
-									<form className="flex w-full max-w-md flex-col gap-3 sm:flex-row" onSubmit={handleAddMember}>
-										<input
-											type="email"
-											value={memberEmail}
-											onChange={(event) => setMemberEmail(event.target.value)}
-											placeholder="member@example.com"
-											className="w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
-										/>
-										<button
-											type="submit"
-											disabled={submittingMember}
-											className="rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
-										>
-											{submittingMember ? 'Adding...' : 'Add member'}
-										</button>
-									</form>
+									{isCurrentUserOwner && (
+										<form className="flex w-full max-w-md flex-col gap-3 sm:flex-row" onSubmit={handleAddMember}>
+											<input
+												type="email"
+												value={memberEmail}
+												onChange={(event) => setMemberEmail(event.target.value)}
+												placeholder="member@example.com"
+												className="w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+											/>
+											<button
+												type="submit"
+												disabled={submittingMember}
+												className="rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+											>
+												{submittingMember ? 'Adding...' : 'Add member'}
+											</button>
+										</form>
+									)}
 								</div>
 
 								{memberSubmitError && (
 									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
 										{memberSubmitError}
+									</div>
+								)}
+
+								{removeMemberError && (
+									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{removeMemberError}
 									</div>
 								)}
 
@@ -242,6 +299,16 @@ export default function WorkspaceDetail() {
 													<span className="text-sm text-slate-500">
 														Joined {new Date(member.joinedAt).toLocaleDateString()}
 													</span>
+													{isCurrentUserOwner && member.role !== 'OWNER' && (
+														<button
+															type="button"
+															onClick={() => void handleRemoveMember(member.userId)}
+															disabled={removingMemberId === member.userId}
+															className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+														>
+															{removingMemberId === member.userId ? 'Removing...' : 'Remove'}
+														</button>
+													)}
 												</div>
 											</div>
 										))}
