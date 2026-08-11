@@ -50,9 +50,11 @@ public class WorkspaceService {
 	}
 
 	public List<Workspace> getUserWorkspaces(String email) {
-		User owner = userRepository.findByEmail(email)
+		User user = userRepository.findByEmail(email)
 				.orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-		return workspaceRepository.findByOwner(owner);
+		return workspaceMemberRepository.findByUser(user).stream()
+				.map(WorkspaceMember::getWorkspace)
+				.toList();
 	}
 }
