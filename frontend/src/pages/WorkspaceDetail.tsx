@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getWorkspace } from '../features/workspace/api/workspace'
+import { addWorkspaceMember, getWorkspace, getWorkspaceMembers } from '../features/workspace/api/workspace'
 import type { Workspace } from '../features/workspace/types/Workspace'
+import type { WorkspaceMember } from '../features/workspace/types/WorkspaceMember'
 
 export default function WorkspaceDetail() {
 	const { id } = useParams<{ id: string }>()
@@ -22,6 +23,12 @@ export default function WorkspaceDetail() {
 	const [workspace, setWorkspace] = useState<Workspace | null>(null)
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [members, setMembers] = useState<WorkspaceMember[]>([])
+	const [membersLoading, setMembersLoading] = useState(false)
+	const [membersError, setMembersError] = useState<string | null>(null)
+	const [memberEmail, setMemberEmail] = useState('')
+	const [submittingMember, setSubmittingMember] = useState(false)
+	const [memberSubmitError, setMemberSubmitError] = useState<string | null>(null)
 
 	useEffect(() => {
 		if (workspaceId === null) {
@@ -54,10 +61,56 @@ export default function WorkspaceDetail() {
 
 		void fetchWorkspace()
 
+		const fetchMembers = async () => {
+			setMembersLoading(true)
+			setMembersError(null)
+
+			try {
+				const data = await getWorkspaceMembers(workspaceId)
+				if (isMounted) {
+					setMembers(data)
+				}
+			} catch {
+				if (isMounted) {
+					setMembersError('Unable to load workspace members right now.')
+				}
+			} finally {
+				if (isMounted) {
+					setMembersLoading(false)
+				}
+			}
+		}
+
+		void fetchMembers()
+
 		return () => {
 			isMounted = false
 		}
 	}, [workspaceId])
+
+	const handleAddMember = async (event: React.FormEvent) => {
+		event.preventDefault()
+		if (workspaceId === null || !memberEmail.trim()) {
+			setMemberSubmitError('Please enter a valid email address.')
+			return
+		}
+
+		setSubmittingMember(true)
+		setMemberSubmitError(null)
+
+		try {
+			const createdMember = await addWorkspaceMember(workspaceId, memberEmail.trim())
+			setMembers((currentMembers) => [...currentMembers, createdMember])
+			setMemberEmail('')
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setMemberSubmitError(
+				apiMessage || 'Unable to add this member right now.'
+			)
+		} finally {
+			setSubmittingMember(false)
+		}
+	}
 
 	return (
 		<div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
@@ -118,6 +171,82 @@ export default function WorkspaceDetail() {
 										</div>
 									</div>
 								</div>
+							</div>
+
+							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+									<div>
+										<h2 className="text-lg font-semibold text-white">Members</h2>
+										<p className="mt-2 text-sm text-slate-400">
+											Manage who can collaborate in this workspace.
+										</p>
+									</div>
+
+									<form className="flex w-full max-w-md flex-col gap-3 sm:flex-row" onSubmit={handleAddMember}>
+										<input
+											type="email"
+											value={memberEmail}
+											onChange={(event) => setMemberEmail(event.target.value)}
+											placeholder="member@example.com"
+											className="w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+										/>
+										<button
+											type="submit"
+											disabled={submittingMember}
+											className="rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+										>
+											{submittingMember ? 'Adding...' : 'Add member'}
+										</button>
+									</form>
+								</div>
+
+								{memberSubmitError && (
+									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{memberSubmitError}
+									</div>
+								)}
+
+								{membersLoading && (
+									<div className="mt-6 text-sm text-slate-400">Loading members...</div>
+								)}
+
+								{membersError && !membersLoading && (
+									<div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{membersError}
+									</div>
+								)}
+
+								{!membersLoading && !membersError && members.length === 0 && (
+									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
+										No members yet. Add the first one above.
+									</div>
+								)}
+
+								{!membersLoading && !membersError && members.length > 0 && (
+									<div className="mt-6 space-y-3">
+										{members.map((member) => (
+											<div
+												key={member.userId}
+												className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-950/40 p-4 sm:flex-row sm:items-center sm:justify-between"
+											>
+												<div>
+													<p className="font-medium text-white">{member.username}</p>
+													<p className="mt-1 text-sm text-slate-400">{member.email}</p>
+												</div>
+												<div className="flex items-center gap-3">
+													<span
+														className={`rounded-full px-3 py-1 text-xs font-semibold ${member.role === 'OWNER' ? 'bg-amber-500/15 text-amber-300' : 'bg-indigo-500/15 text-indigo-300'}`}
+													>
+														{member.role}
+													</span>
+													<span className="text-sm text-slate-500">
+														Joined {new Date(member.joinedAt).toLocaleDateString()}
+													</span>
+												</div>
+											</div>
+										))}
+									</div>
+								)}
 							</div>
 						</div>
 					)}
