@@ -17,6 +17,18 @@ export const getWorkspace = async (id: number): Promise<Workspace> => {
 	return response.data
 }
 
+export const updateWorkspace = async (
+	workspaceId: number,
+	data: { name: string; description?: string }
+): Promise<Workspace> => {
+	const response = await client.patch<Workspace>(`/workspaces/${workspaceId}`, data)
+	return response.data
+}
+
+export const deleteWorkspace = async (workspaceId: number): Promise<void> => {
+	await client.delete(`/workspaces/${workspaceId}`)
+}
+
 export const getWorkspaceMembers = async (workspaceId: number): Promise<WorkspaceMember[]> => {
 	const response = await client.get<WorkspaceMember[]>(`/workspaces/${workspaceId}/members`)
 	return response.data

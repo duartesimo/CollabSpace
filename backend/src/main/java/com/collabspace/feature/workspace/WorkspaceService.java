@@ -3,6 +3,7 @@ package com.collabspace.feature.workspace;
 import com.collabspace.feature.user.User;
 import com.collabspace.feature.user.UserRepository;
 import com.collabspace.feature.workspace.dto.CreateWorkspaceRequest;
+import com.collabspace.feature.workspace.dto.UpdateWorkspaceRequest;
 import com.collabspace.feature.workspace.member.WorkspaceMember;
 import com.collabspace.feature.workspace.member.WorkspaceMemberRepository;
 import com.collabspace.feature.workspace.member.WorkspaceRole;
@@ -18,12 +19,14 @@ public class WorkspaceService {
 	private final WorkspaceRepository workspaceRepository;
 	private final UserRepository userRepository;
 	private final WorkspaceMemberRepository workspaceMemberRepository;
+	private final WorkspaceMemberService workspaceMemberService;
 
 	public WorkspaceService(WorkspaceRepository workspaceRepository, UserRepository userRepository,
-			WorkspaceMemberRepository workspaceMemberRepository) {
+			WorkspaceMemberRepository workspaceMemberRepository, WorkspaceMemberService workspaceMemberService) {
 		this.workspaceRepository = workspaceRepository;
 		this.userRepository = userRepository;
 		this.workspaceMemberRepository = workspaceMemberRepository;
+		this.workspaceMemberService = workspaceMemberService;
 	}
 
 	@Transactional
@@ -56,5 +59,21 @@ public class WorkspaceService {
 		return workspaceMemberRepository.findByUser(user).stream()
 				.map(WorkspaceMember::getWorkspace)
 				.toList();
+	}
+
+	@Transactional
+	public Workspace updateWorkspace(String email, Long workspaceId, UpdateWorkspaceRequest request) {
+		Workspace workspace = workspaceMemberService.getWorkspaceForOwner(email, workspaceId);
+		workspace.setName(request.getName());
+		workspace.setDescription(request.getDescription());
+		workspace.setUpdatedAt(LocalDateTime.now());
+		return workspaceRepository.save(workspace);
+	}
+
+	@Transactional
+	public void deleteWorkspace(String email, Long workspaceId) {
+		Workspace workspace = workspaceMemberService.getWorkspaceForOwner(email, workspaceId);
+		workspaceMemberRepository.deleteAll(workspaceMemberRepository.findByWorkspace(workspace));
+		workspaceRepository.delete(workspace);
 	}
 }

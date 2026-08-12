@@ -41,6 +41,20 @@ public class WorkspaceMemberService {
 		return workspace;
 	}
 
+	public Workspace getWorkspaceForOwner(String email, Long workspaceId) {
+		User currentUser = userRepository.findByEmail(email)
+				.orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+		Workspace workspace = workspaceRepository.findById(workspaceId)
+				.orElseThrow(() -> new IllegalArgumentException("Workspace not found"));
+
+		WorkspaceMember membership = workspaceMemberRepository.findByWorkspaceAndUser(workspace, currentUser)
+				.orElseThrow(() -> new IllegalArgumentException("You are not a member of this workspace"));
+
+		ensureOwner(membership, "Only the workspace owner can modify this workspace");
+		return workspace;
+	}
+
 	public List<WorkspaceMemberResponse> getWorkspaceMembers(String email, Long workspaceId) {
 		Workspace workspace = getWorkspaceForMember(email, workspaceId);
 
