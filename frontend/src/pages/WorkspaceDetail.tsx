@@ -1,7 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import client from '../api/client'
-import { addWorkspaceMember, getWorkspace, getWorkspaceMembers, removeWorkspaceMember } from '../features/workspace/api/workspace'
+import {
+	addWorkspaceMember,
+	deleteWorkspace,
+	getWorkspace,
+	getWorkspaceMembers,
+	removeWorkspaceMember,
+	updateWorkspace
+} from '../features/workspace/api/workspace'
 import type { Workspace } from '../features/workspace/types/Workspace'
 import type { WorkspaceMember } from '../features/workspace/types/WorkspaceMember'
 
@@ -14,6 +21,7 @@ interface CurrentUserResponse {
 
 export default function WorkspaceDetail() {
 	const { id } = useParams<{ id: string }>()
+	const navigate = useNavigate()
 
 	const workspaceId = useMemo(() => {
 		if (!id) {
@@ -31,6 +39,12 @@ export default function WorkspaceDetail() {
 	const [workspace, setWorkspace] = useState<Workspace | null>(null)
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [workspaceName, setWorkspaceName] = useState('')
+	const [workspaceDescription, setWorkspaceDescription] = useState('')
+	const [savingWorkspace, setSavingWorkspace] = useState(false)
+	const [workspaceSaveError, setWorkspaceSaveError] = useState<string | null>(null)
+	const [deletingWorkspace, setDeletingWorkspace] = useState(false)
+	const [workspaceDeleteError, setWorkspaceDeleteError] = useState<string | null>(null)
 	const [members, setMembers] = useState<WorkspaceMember[]>([])
 	const [membersLoading, setMembersLoading] = useState(false)
 	const [membersError, setMembersError] = useState<string | null>(null)
@@ -71,6 +85,8 @@ export default function WorkspaceDetail() {
 				const data = await getWorkspace(workspaceId)
 				if (isMounted) {
 					setWorkspace(data)
+					setWorkspaceName(data.name)
+					setWorkspaceDescription(data.description || '')
 				}
 			} catch {
 				if (isMounted) {
@@ -112,6 +128,59 @@ export default function WorkspaceDetail() {
 		}
 	}, [workspaceId])
 
+	const isCurrentUserOwner =
+		currentUserId !== null &&
+		members.some(
+			(member) =>
+				member.userId === currentUserId &&
+				member.role === 'OWNER'
+		)
+
+	const handleUpdateWorkspace = async (event: React.FormEvent) => {
+		event.preventDefault()
+		if (workspaceId === null || !workspaceName.trim()) {
+			setWorkspaceSaveError('Workspace name is required.')
+			return
+		}
+
+		setSavingWorkspace(true)
+		setWorkspaceSaveError(null)
+
+		try {
+			const updatedWorkspace = await updateWorkspace(workspaceId, {
+				name: workspaceName.trim(),
+				description: workspaceDescription.trim()
+			})
+			setWorkspace(updatedWorkspace)
+			setWorkspaceName(updatedWorkspace.name)
+			setWorkspaceDescription(updatedWorkspace.description || '')
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setWorkspaceSaveError(apiMessage || 'Unable to update this workspace right now.')
+		} finally {
+			setSavingWorkspace(false)
+		}
+	}
+
+	const handleDeleteWorkspace = async () => {
+		if (workspaceId === null || !window.confirm('Delete this workspace? This action cannot be undone.')) {
+			return
+		}
+
+		setDeletingWorkspace(true)
+		setWorkspaceDeleteError(null)
+
+		try {
+			await deleteWorkspace(workspaceId)
+			navigate('/')
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setWorkspaceDeleteError(apiMessage || 'Unable to delete this workspace right now.')
+		} finally {
+			setDeletingWorkspace(false)
+		}
+	}
+
 	const handleAddMember = async (event: React.FormEvent) => {
 		event.preventDefault()
 		if (workspaceId === null || !memberEmail.trim()) {
@@ -152,14 +221,6 @@ export default function WorkspaceDetail() {
 			setRemovingMemberId(null)
 		}
 	}
-
-	const isCurrentUserOwner =
-		currentUserId !== null &&
-		members.some(
-			(member) =>
-				member.userId === currentUserId &&
-				member.role === 'OWNER'
-		)
 
 	return (
 		<div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
@@ -221,6 +282,60 @@ export default function WorkspaceDetail() {
 									</div>
 								</div>
 							</div>
+
+							{isCurrentUserOwner && (
+								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+									<h2 className="text-lg font-semibold text-white">Settings</h2>
+									<p className="mt-2 text-sm text-slate-400">
+										Update your workspace details.
+									</p>
+
+									<form className="mt-6 space-y-4" onSubmit={handleUpdateWorkspace}>
+										<div>
+											<label htmlFor="workspace-name" className="text-sm font-medium text-slate-200">
+												Workspace name
+											</label>
+											<input
+												id="workspace-name"
+												type="text"
+												value={workspaceName}
+												onChange={(event) => setWorkspaceName(event.target.value)}
+												maxLength={100}
+												required
+												className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+											/>
+										</div>
+
+										<div>
+											<label htmlFor="workspace-description" className="text-sm font-medium text-slate-200">
+												Description
+											</label>
+											<textarea
+												id="workspace-description"
+												value={workspaceDescription}
+												onChange={(event) => setWorkspaceDescription(event.target.value)}
+												maxLength={500}
+												rows={4}
+												className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+											/>
+										</div>
+
+										{workspaceSaveError && (
+											<div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+												{workspaceSaveError}
+											</div>
+										)}
+
+										<button
+											type="submit"
+											disabled={savingWorkspace}
+											className="rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+										>
+											{savingWorkspace ? 'Saving...' : 'Save changes'}
+										</button>
+									</form>
+								</div>
+							)}
 
 							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
 								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -315,6 +430,30 @@ export default function WorkspaceDetail() {
 									</div>
 								)}
 							</div>
+
+							{isCurrentUserOwner && (
+								<div className="rounded-3xl border border-red-500/30 bg-red-500/5 p-6">
+									<h2 className="text-lg font-semibold text-red-200">Danger zone</h2>
+									<p className="mt-2 text-sm text-slate-400">
+										Permanently delete this workspace and all of its memberships.
+									</p>
+
+									{workspaceDeleteError && (
+										<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+											{workspaceDeleteError}
+										</div>
+									)}
+
+									<button
+										type="button"
+										onClick={() => void handleDeleteWorkspace()}
+										disabled={deletingWorkspace}
+										className="mt-5 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+									>
+										{deletingWorkspace ? 'Deleting...' : 'Delete workspace'}
+									</button>
+								</div>
+							)}
 						</div>
 					)}
 				</div>
