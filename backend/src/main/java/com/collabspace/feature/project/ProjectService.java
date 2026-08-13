@@ -1,0 +1,112 @@
+package com.collabspace.feature.project;
+
+import com.collabspace.feature.project.dto.CreateProjectRequest;
+import com.collabspace.feature.project.dto.ProjectResponse;
+import com.collabspace.feature.project.dto.UpdateProjectRequest;
+import com.collabspace.feature.project.member.ProjectMember;
+import com.collabspace.feature.project.member.ProjectMemberRepository;
+import com.collabspace.feature.project.member.ProjectRole;
+import com.collabspace.feature.user.User;
+import com.collabspace.feature.user.UserRepository;
+import com.collabspace.feature.workspace.Workspace;
+import com.collabspace.feature.workspace.WorkspaceMemberService;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+public class ProjectService {
+
+	private final ProjectRepository projectRepository;
+	private final UserRepository userRepository;
+	private final ProjectMemberRepository projectMemberRepository;
+	private final WorkspaceMemberService workspaceMemberService;
+
+	public ProjectService(ProjectRepository projectRepository, UserRepository userRepository,
+			ProjectMemberRepository projectMemberRepository, WorkspaceMemberService workspaceMemberService) {
+		this.projectRepository = projectRepository;
+		this.userRepository = userRepository;
+		this.projectMemberRepository = projectMemberRepository;
+		this.workspaceMemberService = workspaceMemberService;
+	}
+
+	public List<ProjectResponse> getProjects(String email, Long workspaceId) {
+		Workspace workspace = workspaceMemberService.getWorkspaceForMember(email, workspaceId);
+		return projectRepository.findByWorkspaceOrderByCreatedAtDesc(workspace).stream()
+				.map(this::mapToResponse)
+				.toList();
+	}
+
+	public ProjectResponse getProject(String email, Long projectId) {
+		Project project = projectRepository.findById(projectId)
+				.orElseThrow(() -> new IllegalArgumentException("Project not found"));
+
+		workspaceMemberService.getWorkspaceForMember(email, project.getWorkspace().getId());
+		return mapToResponse(project);
+	}
+
+	@Transactional
+	public ProjectResponse createProject(String email, Long workspaceId, CreateProjectRequest request) {
+		Workspace workspace = workspaceMemberService.getWorkspaceForOwner(email, workspaceId);
+		LocalDateTime now = LocalDateTime.now();
+
+		Project project = new Project();
+		project.setWorkspace(workspace);
+		project.setName(request.getName());
+		project.setDescription(request.getDescription());
+		project.setStatus(ProjectStatus.ACTIVE);
+		project.setCreatedAt(now);
+		project.setUpdatedAt(now);
+
+		Project savedProject = projectRepository.save(project);
+
+		User owner = userRepository.findByEmail(email)
+				.orElseThrow(() -> new IllegalArgumentException("User not found"));
+		ProjectMember ownerMembership = new ProjectMember();
+		ownerMembership.setProject(savedProject);
+		ownerMembership.setUser(owner);
+		ownerMembership.setRole(ProjectRole.OWNER);
+		ownerMembership.setJoinedAt(now);
+		projectMemberRepository.save(ownerMembership);
+
+		return mapToResponse(savedProject);
+	}
+
+	@Transactional
+	public ProjectResponse updateProject(String email, Long projectId, UpdateProjectRequest request) {
+		Project project = projectRepository.findById(projectId)
+				.orElseThrow(() -> new IllegalArgumentException("Project not found"));
+
+		workspaceMemberService.getWorkspaceForOwner(email, project.getWorkspace().getId());
+		project.setName(request.getName());
+		project.setDescription(request.getDescription());
+		project.setStatus(request.getStatus());
+		project.setUpdatedAt(LocalDateTime.now());
+
+		return mapToResponse(projectRepository.save(project));
+	}
+
+	@Transactional
+	public void deleteProject(String email, Long projectId) {
+		Project project = projectRepository.findById(projectId)
+				.orElseThrow(() -> new IllegalArgumentException("Project not found"));
+
+		workspaceMemberService.getWorkspaceForOwner(email, project.getWorkspace().getId());
+		projectMemberRepository.deleteAll(projectMemberRepository.findByProject(project));
+		projectRepository.delete(project);
+	}
+
+	private ProjectResponse mapToResponse(Project project) {
+		ProjectResponse response = new ProjectResponse();
+		response.setId(project.getId());
+		response.setWorkspaceId(project.getWorkspace().getId());
+		response.setName(project.getName());
+		response.setDescription(project.getDescription());
+		response.setStatus(project.getStatus());
+		response.setCreatedAt(project.getCreatedAt());
+		response.setUpdatedAt(project.getUpdatedAt());
+		return response;
+	}
+}
