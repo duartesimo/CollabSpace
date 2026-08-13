@@ -2,12 +2,15 @@ package com.collabspace.feature.project;
 
 import com.collabspace.feature.project.dto.CreateProjectRequest;
 import com.collabspace.feature.project.dto.ProjectResponse;
+import com.collabspace.feature.project.dto.UpdateProjectRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,6 +30,20 @@ public class ProjectController {
 	public ResponseEntity<ProjectResponse> getProject(@PathVariable Long id) {
 		String email = SecurityContextHolder.getContext().getAuthentication().getName();
 		return ResponseEntity.ok(projectService.getProject(email, id));
+	}
+
+	@PatchMapping("/api/projects/{id}")
+	public ResponseEntity<ProjectResponse> updateProject(@PathVariable Long id,
+			@Valid @RequestBody UpdateProjectRequest request) {
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(projectService.updateProject(email, id, request));
+	}
+
+	@DeleteMapping("/api/projects/{id}")
+	public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+		projectService.deleteProject(email, id);
+		return ResponseEntity.noContent().build();
 	}
 
 	@GetMapping("/api/workspaces/{workspaceId}/projects")

@@ -3,6 +3,8 @@ package com.collabspace.feature.project;
 import com.collabspace.feature.workspace.Workspace;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -29,6 +31,10 @@ public class Project {
 
 	@Column(name = "description", length = 500)
 	private String description;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "status", nullable = false, length = 20)
+	private ProjectStatus status;
 
 	@Column(name = "created_at", nullable = false)
 	private LocalDateTime createdAt;
@@ -66,6 +72,14 @@ public class Project {
 
 	public void setDescription(String description) {
 		this.description = description;
+	}
+
+	public ProjectStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(ProjectStatus status) {
+		this.status = status;
 	}
 
 	public LocalDateTime getCreatedAt() {

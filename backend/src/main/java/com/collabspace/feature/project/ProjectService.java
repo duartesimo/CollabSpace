@@ -2,6 +2,7 @@ package com.collabspace.feature.project;
 
 import com.collabspace.feature.project.dto.CreateProjectRequest;
 import com.collabspace.feature.project.dto.ProjectResponse;
+import com.collabspace.feature.project.dto.UpdateProjectRequest;
 import com.collabspace.feature.workspace.Workspace;
 import com.collabspace.feature.workspace.WorkspaceMemberService;
 import org.springframework.stereotype.Service;
@@ -45,10 +46,34 @@ public class ProjectService {
 		project.setWorkspace(workspace);
 		project.setName(request.getName());
 		project.setDescription(request.getDescription());
+		project.setStatus(ProjectStatus.ACTIVE);
 		project.setCreatedAt(now);
 		project.setUpdatedAt(now);
 
 		return mapToResponse(projectRepository.save(project));
+	}
+
+	@Transactional
+	public ProjectResponse updateProject(String email, Long projectId, UpdateProjectRequest request) {
+		Project project = projectRepository.findById(projectId)
+				.orElseThrow(() -> new IllegalArgumentException("Project not found"));
+
+		workspaceMemberService.getWorkspaceForOwner(email, project.getWorkspace().getId());
+		project.setName(request.getName());
+		project.setDescription(request.getDescription());
+		project.setStatus(request.getStatus());
+		project.setUpdatedAt(LocalDateTime.now());
+
+		return mapToResponse(projectRepository.save(project));
+	}
+
+	@Transactional
+	public void deleteProject(String email, Long projectId) {
+		Project project = projectRepository.findById(projectId)
+				.orElseThrow(() -> new IllegalArgumentException("Project not found"));
+
+		workspaceMemberService.getWorkspaceForOwner(email, project.getWorkspace().getId());
+		projectRepository.delete(project);
 	}
 
 	private ProjectResponse mapToResponse(Project project) {
@@ -57,6 +82,7 @@ public class ProjectService {
 		response.setWorkspaceId(project.getWorkspace().getId());
 		response.setName(project.getName());
 		response.setDescription(project.getDescription());
+		response.setStatus(project.getStatus());
 		response.setCreatedAt(project.getCreatedAt());
 		response.setUpdatedAt(project.getUpdatedAt());
 		return response;

@@ -1,5 +1,7 @@
 package com.collabspace.feature.project.dto;
 
+import com.collabspace.feature.project.ProjectStatus;
+
 import java.time.LocalDateTime;
 
 public class ProjectResponse {
@@ -8,6 +10,7 @@ public class ProjectResponse {
 	private Long workspaceId;
 	private String name;
 	private String description;
+	private ProjectStatus status;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
 
@@ -41,6 +44,14 @@ public class ProjectResponse {
 
 	public void setDescription(String description) {
 		this.description = description;
+	}
+
+	public ProjectStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(ProjectStatus status) {
+		this.status = status;
 	}
 
 	public LocalDateTime getCreatedAt() {
