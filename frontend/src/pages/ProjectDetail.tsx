@@ -1,8 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import client from '../api/client'
-import { deleteProject, getProject, getWorkspaceMembers, updateProject } from '../features/workspace/api/workspace'
+import {
+	addProjectMember,
+	deleteProject,
+	getProject,
+	getProjectMembers,
+	getWorkspaceMembers,
+	removeProjectMember,
+	updateProject
+} from '../features/workspace/api/workspace'
 import type { Project, ProjectStatus } from '../features/project/types/Project'
+import type { ProjectMember } from '../features/project/types/ProjectMember'
 import type { WorkspaceMember } from '../features/workspace/types/WorkspaceMember'
 
 interface CurrentUserResponse {
@@ -39,8 +48,16 @@ export default function ProjectDetail() {
 	const [projectSaveError, setProjectSaveError] = useState<string | null>(null)
 	const [deletingProject, setDeletingProject] = useState(false)
 	const [projectDeleteError, setProjectDeleteError] = useState<string | null>(null)
-	const [members, setMembers] = useState<WorkspaceMember[]>([])
+	const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMember[]>([])
 	const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+	const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([])
+	const [projectMembersLoading, setProjectMembersLoading] = useState(false)
+	const [projectMembersError, setProjectMembersError] = useState<string | null>(null)
+	const [projectMemberEmail, setProjectMemberEmail] = useState('')
+	const [submittingProjectMember, setSubmittingProjectMember] = useState(false)
+	const [projectMemberSubmitError, setProjectMemberSubmitError] = useState<string | null>(null)
+	const [removingProjectMemberId, setRemovingProjectMemberId] = useState<number | null>(null)
+	const [projectMemberRemoveError, setProjectMemberRemoveError] = useState<string | null>(null)
 
 	useEffect(() => {
 		const fetchCurrentUser = async () => {
@@ -96,7 +113,7 @@ export default function ProjectDetail() {
 
 	useEffect(() => {
 		if (project === null) {
-			setMembers([])
+			setWorkspaceMembers([])
 			return
 		}
 
@@ -106,11 +123,11 @@ export default function ProjectDetail() {
 			try {
 				const data = await getWorkspaceMembers(project.workspaceId)
 				if (isMounted) {
-					setMembers(data)
+					setWorkspaceMembers(data)
 				}
 			} catch {
 				if (isMounted) {
-					setMembers([])
+					setWorkspaceMembers([])
 				}
 			}
 		}
@@ -122,9 +139,44 @@ export default function ProjectDetail() {
 		}
 	}, [project])
 
+	useEffect(() => {
+		if (project === null) {
+			setProjectMembers([])
+			return
+		}
+
+		let isMounted = true
+
+		const fetchProjectMembers = async () => {
+			setProjectMembersLoading(true)
+			setProjectMembersError(null)
+
+			try {
+				const data = await getProjectMembers(project.id)
+				if (isMounted) {
+					setProjectMembers(data)
+				}
+			} catch {
+				if (isMounted) {
+					setProjectMembersError('Unable to load project members right now.')
+				}
+			} finally {
+				if (isMounted) {
+					setProjectMembersLoading(false)
+				}
+			}
+		}
+
+		void fetchProjectMembers()
+
+		return () => {
+			isMounted = false
+		}
+	}, [project])
+
 	const isCurrentUserOwner =
 		currentUserId !== null &&
-		members.some(
+		workspaceMembers.some(
 			(member) =>
 				member.userId === currentUserId &&
 				member.role === 'OWNER'
@@ -178,6 +230,50 @@ export default function ProjectDetail() {
 			setProjectDeleteError(apiMessage || 'Unable to delete this project right now.')
 		} finally {
 			setDeletingProject(false)
+		}
+	}
+
+	const handleAddProjectMember = async (event: React.FormEvent) => {
+		event.preventDefault()
+		if (projectId === null || !projectMemberEmail.trim()) {
+			setProjectMemberSubmitError('Please enter a valid email address.')
+			return
+		}
+
+		setSubmittingProjectMember(true)
+		setProjectMemberSubmitError(null)
+
+		try {
+			const createdMember = await addProjectMember(projectId, projectMemberEmail.trim())
+			setProjectMembers((currentMembers) => [...currentMembers, createdMember])
+			setProjectMemberEmail('')
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setProjectMemberSubmitError(apiMessage || 'Unable to add this member right now.')
+		} finally {
+			setSubmittingProjectMember(false)
+		}
+	}
+
+	const handleRemoveProjectMember = async (userId: number) => {
+		if (
+			projectId === null ||
+			!window.confirm('Remove this member from the project?')
+		) {
+			return
+		}
+
+		setRemovingProjectMemberId(userId)
+		setProjectMemberRemoveError(null)
+
+		try {
+			await removeProjectMember(projectId, userId)
+			setProjectMembers((currentMembers) => currentMembers.filter((member) => member.userId !== userId))
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setProjectMemberRemoveError(apiMessage || 'Unable to remove this member right now.')
+		} finally {
+			setRemovingProjectMemberId(null)
 		}
 	}
 
@@ -247,6 +343,100 @@ export default function ProjectDetail() {
 										</div>
 									</div>
 								</div>
+							</div>
+
+							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+									<div>
+										<h2 className="text-lg font-semibold text-white">Members</h2>
+										<p className="mt-2 text-sm text-slate-400">
+											People collaborating on this project.
+										</p>
+									</div>
+
+									{isCurrentUserOwner && (
+										<form className="flex w-full max-w-md flex-col gap-3 sm:flex-row" onSubmit={handleAddProjectMember}>
+											<input
+												type="email"
+												value={projectMemberEmail}
+												onChange={(event) => setProjectMemberEmail(event.target.value)}
+												placeholder="member@example.com"
+												className="w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+											/>
+											<button
+												type="submit"
+												disabled={submittingProjectMember}
+												className="rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+											>
+												{submittingProjectMember ? 'Adding...' : 'Add member'}
+											</button>
+										</form>
+									)}
+								</div>
+
+								{projectMemberSubmitError && (
+									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{projectMemberSubmitError}
+									</div>
+								)}
+
+								{projectMemberRemoveError && (
+									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{projectMemberRemoveError}
+									</div>
+								)}
+
+								{projectMembersLoading && (
+									<div className="mt-6 text-sm text-slate-400">Loading members...</div>
+								)}
+
+								{projectMembersError && !projectMembersLoading && (
+									<div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{projectMembersError}
+									</div>
+								)}
+
+								{!projectMembersLoading && !projectMembersError && projectMembers.length === 0 && (
+									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
+										No project members yet.
+									</div>
+								)}
+
+								{!projectMembersLoading && !projectMembersError && projectMembers.length > 0 && (
+									<div className="mt-6 space-y-3">
+										{projectMembers.map((member) => (
+											<div
+												key={member.userId}
+												className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-950/40 p-4 sm:flex-row sm:items-center sm:justify-between"
+											>
+												<div>
+													<p className="font-medium text-white">{member.username}</p>
+													<p className="mt-1 text-sm text-slate-400">{member.email}</p>
+												</div>
+												<div className="flex items-center gap-3">
+													<span
+														className={`rounded-full px-3 py-1 text-xs font-semibold ${member.role === 'OWNER' ? 'bg-amber-500/15 text-amber-300' : 'bg-indigo-500/15 text-indigo-300'}`}
+													>
+														{member.role}
+													</span>
+													<span className="text-sm text-slate-500">
+														Joined {new Date(member.joinedAt).toLocaleDateString()}
+													</span>
+													{isCurrentUserOwner && member.role === 'MEMBER' && (
+														<button
+															type="button"
+															onClick={() => void handleRemoveProjectMember(member.userId)}
+															disabled={removingProjectMemberId === member.userId}
+															className="rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+														>
+															{removingProjectMemberId === member.userId ? 'Removing...' : 'Remove'}
+														</button>
+													)}
+												</div>
+											</div>
+										))}
+									</div>
+								)}
 							</div>
 
 							{isCurrentUserOwner && (

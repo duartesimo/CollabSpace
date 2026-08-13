@@ -1,5 +1,6 @@
 import client from '../../../api/client'
 import type { Project, ProjectStatus } from '../../project/types/Project'
+import type { ProjectMember } from '../../project/types/ProjectMember'
 import type { Workspace } from '../types/Workspace'
 import type { WorkspaceMember } from '../types/WorkspaceMember'
 
@@ -58,6 +59,20 @@ export const updateProject = async (
 
 export const deleteProject = async (projectId: number): Promise<void> => {
 	await client.delete(`/projects/${projectId}`)
+}
+
+export const getProjectMembers = async (projectId: number): Promise<ProjectMember[]> => {
+	const response = await client.get<ProjectMember[]>(`/projects/${projectId}/members`)
+	return response.data
+}
+
+export const addProjectMember = async (projectId: number, email: string): Promise<ProjectMember> => {
+	const response = await client.post<ProjectMember>(`/projects/${projectId}/members`, { email })
+	return response.data
+}
+
+export const removeProjectMember = async (projectId: number, userId: number): Promise<void> => {
+	await client.delete(`/projects/${projectId}/members/${userId}`)
 }
 
 export const getWorkspaceMembers = async (workspaceId: number): Promise<WorkspaceMember[]> => {
