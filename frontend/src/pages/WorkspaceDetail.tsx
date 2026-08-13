@@ -3,12 +3,15 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import client from '../api/client'
 import {
 	addWorkspaceMember,
+	createWorkspaceProject,
 	deleteWorkspace,
 	getWorkspace,
 	getWorkspaceMembers,
+	getWorkspaceProjects,
 	removeWorkspaceMember,
 	updateWorkspace
 } from '../features/workspace/api/workspace'
+import type { Project } from '../features/project/types/Project'
 import type { Workspace } from '../features/workspace/types/Workspace'
 import type { WorkspaceMember } from '../features/workspace/types/WorkspaceMember'
 
@@ -45,6 +48,13 @@ export default function WorkspaceDetail() {
 	const [workspaceSaveError, setWorkspaceSaveError] = useState<string | null>(null)
 	const [deletingWorkspace, setDeletingWorkspace] = useState(false)
 	const [workspaceDeleteError, setWorkspaceDeleteError] = useState<string | null>(null)
+	const [projects, setProjects] = useState<Project[]>([])
+	const [projectsLoading, setProjectsLoading] = useState(false)
+	const [projectsError, setProjectsError] = useState<string | null>(null)
+	const [projectName, setProjectName] = useState('')
+	const [projectDescription, setProjectDescription] = useState('')
+	const [submittingProject, setSubmittingProject] = useState(false)
+	const [projectSubmitError, setProjectSubmitError] = useState<string | null>(null)
 	const [members, setMembers] = useState<WorkspaceMember[]>([])
 	const [membersLoading, setMembersLoading] = useState(false)
 	const [membersError, setMembersError] = useState<string | null>(null)
@@ -123,6 +133,28 @@ export default function WorkspaceDetail() {
 
 		void fetchMembers()
 
+		const fetchProjects = async () => {
+			setProjectsLoading(true)
+			setProjectsError(null)
+
+			try {
+				const data = await getWorkspaceProjects(workspaceId)
+				if (isMounted) {
+					setProjects(data)
+				}
+			} catch {
+				if (isMounted) {
+					setProjectsError('Unable to load workspace projects right now.')
+				}
+			} finally {
+				if (isMounted) {
+					setProjectsLoading(false)
+				}
+			}
+		}
+
+		void fetchProjects()
+
 		return () => {
 			isMounted = false
 		}
@@ -178,6 +210,32 @@ export default function WorkspaceDetail() {
 			setWorkspaceDeleteError(apiMessage || 'Unable to delete this workspace right now.')
 		} finally {
 			setDeletingWorkspace(false)
+		}
+	}
+
+	const handleCreateProject = async (event: React.FormEvent) => {
+		event.preventDefault()
+		if (workspaceId === null || !projectName.trim()) {
+			setProjectSubmitError('Project name is required.')
+			return
+		}
+
+		setSubmittingProject(true)
+		setProjectSubmitError(null)
+
+		try {
+			const createdProject = await createWorkspaceProject(workspaceId, {
+				name: projectName.trim(),
+				description: projectDescription.trim()
+			})
+			setProjects((currentProjects) => [...currentProjects, createdProject])
+			setProjectName('')
+			setProjectDescription('')
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setProjectSubmitError(apiMessage || 'Unable to create this project right now.')
+		} finally {
+			setSubmittingProject(false)
 		}
 	}
 
@@ -281,6 +339,83 @@ export default function WorkspaceDetail() {
 										</div>
 									</div>
 								</div>
+							</div>
+
+							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+									<div>
+										<h2 className="text-lg font-semibold text-white">Projects</h2>
+										<p className="mt-2 text-sm text-slate-400">
+											Projects in this workspace.
+										</p>
+									</div>
+
+									{isCurrentUserOwner && (
+										<form className="w-full max-w-md space-y-3" onSubmit={handleCreateProject}>
+											<input
+												type="text"
+												value={projectName}
+												onChange={(event) => setProjectName(event.target.value)}
+												placeholder="Project name"
+												maxLength={100}
+												required
+												className="w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+											/>
+											<textarea
+												value={projectDescription}
+												onChange={(event) => setProjectDescription(event.target.value)}
+												placeholder="Project description"
+												maxLength={500}
+												rows={3}
+												className="w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+											/>
+											{projectSubmitError && (
+												<div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+													{projectSubmitError}
+												</div>
+											)}
+											<button
+												type="submit"
+												disabled={submittingProject}
+												className="rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+											>
+												{submittingProject ? 'Creating...' : 'Create project'}
+											</button>
+										</form>
+									)}
+								</div>
+
+								{projectsLoading && (
+									<div className="mt-6 text-sm text-slate-400">Loading projects...</div>
+								)}
+
+								{projectsError && !projectsLoading && (
+									<div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{projectsError}
+									</div>
+								)}
+
+								{!projectsLoading && !projectsError && projects.length === 0 && (
+									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
+										No projects yet.
+									</div>
+								)}
+
+								{!projectsLoading && !projectsError && projects.length > 0 && (
+									<div className="mt-6 grid gap-3 md:grid-cols-2">
+										{projects.map((project) => (
+											<div key={project.id} className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+												<h3 className="font-medium text-white">{project.name}</h3>
+												<p className="mt-2 text-sm leading-6 text-slate-400">
+													{project.description || 'No description provided for this project yet.'}
+												</p>
+												<p className="mt-4 text-xs text-slate-500">
+													Created {new Date(project.createdAt).toLocaleDateString()}
+												</p>
+											</div>
+										))}
+									</div>
+								)}
 							</div>
 
 							{isCurrentUserOwner && (

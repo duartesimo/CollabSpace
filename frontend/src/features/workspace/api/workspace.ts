@@ -1,4 +1,5 @@
 import client from '../../../api/client'
+import type { Project } from '../../project/types/Project'
 import type { Workspace } from '../types/Workspace'
 import type { WorkspaceMember } from '../types/WorkspaceMember'
 
@@ -27,6 +28,19 @@ export const updateWorkspace = async (
 
 export const deleteWorkspace = async (workspaceId: number): Promise<void> => {
 	await client.delete(`/workspaces/${workspaceId}`)
+}
+
+export const getWorkspaceProjects = async (workspaceId: number): Promise<Project[]> => {
+	const response = await client.get<Project[]>(`/workspaces/${workspaceId}/projects`)
+	return response.data
+}
+
+export const createWorkspaceProject = async (
+	workspaceId: number,
+	data: { name: string; description?: string }
+): Promise<Project> => {
+	const response = await client.post<Project>(`/workspaces/${workspaceId}/projects`, data)
+	return response.data
 }
 
 export const getWorkspaceMembers = async (workspaceId: number): Promise<WorkspaceMember[]> => {
