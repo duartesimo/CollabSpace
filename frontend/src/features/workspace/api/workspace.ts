@@ -43,6 +43,11 @@ export const createWorkspaceProject = async (
 	return response.data
 }
 
+export const getProject = async (id: number): Promise<Project> => {
+	const response = await client.get<Project>(`/projects/${id}`)
+	return response.data
+}
+
 export const getWorkspaceMembers = async (workspaceId: number): Promise<WorkspaceMember[]> => {
 	const response = await client.get<WorkspaceMember[]>(`/workspaces/${workspaceId}/members`)
 	return response.data

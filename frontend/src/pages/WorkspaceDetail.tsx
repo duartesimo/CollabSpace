@@ -404,7 +404,11 @@ export default function WorkspaceDetail() {
 								{!projectsLoading && !projectsError && projects.length > 0 && (
 									<div className="mt-6 grid gap-3 md:grid-cols-2">
 										{projects.map((project) => (
-											<div key={project.id} className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+											<Link
+												key={project.id}
+												to={`/projects/${project.id}`}
+												className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 transition hover:border-slate-600 hover:bg-slate-900/70"
+											>
 												<h3 className="font-medium text-white">{project.name}</h3>
 												<p className="mt-2 text-sm leading-6 text-slate-400">
 													{project.description || 'No description provided for this project yet.'}
@@ -412,7 +416,7 @@ export default function WorkspaceDetail() {
 												<p className="mt-4 text-xs text-slate-500">
 													Created {new Date(project.createdAt).toLocaleDateString()}
 												</p>
-											</div>
+											</Link>
 										))}
 									</div>
 								)}
