@@ -28,6 +28,14 @@ public class ProjectService {
 				.toList();
 	}
 
+	public ProjectResponse getProject(String email, Long projectId) {
+		Project project = projectRepository.findById(projectId)
+				.orElseThrow(() -> new IllegalArgumentException("Project not found"));
+
+		workspaceMemberService.getWorkspaceForMember(email, project.getWorkspace().getId());
+		return mapToResponse(project);
+	}
+
 	@Transactional
 	public ProjectResponse createProject(String email, Long workspaceId, CreateProjectRequest request) {
 		Workspace workspace = workspaceMemberService.getWorkspaceForOwner(email, workspaceId);
