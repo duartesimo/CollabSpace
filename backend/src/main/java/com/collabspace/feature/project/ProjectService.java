@@ -3,6 +3,11 @@ package com.collabspace.feature.project;
 import com.collabspace.feature.project.dto.CreateProjectRequest;
 import com.collabspace.feature.project.dto.ProjectResponse;
 import com.collabspace.feature.project.dto.UpdateProjectRequest;
+import com.collabspace.feature.project.member.ProjectMember;
+import com.collabspace.feature.project.member.ProjectMemberRepository;
+import com.collabspace.feature.project.member.ProjectRole;
+import com.collabspace.feature.user.User;
+import com.collabspace.feature.user.UserRepository;
 import com.collabspace.feature.workspace.Workspace;
 import com.collabspace.feature.workspace.WorkspaceMemberService;
 import org.springframework.stereotype.Service;
@@ -15,10 +20,15 @@ import java.util.List;
 public class ProjectService {
 
 	private final ProjectRepository projectRepository;
+	private final UserRepository userRepository;
+	private final ProjectMemberRepository projectMemberRepository;
 	private final WorkspaceMemberService workspaceMemberService;
 
-	public ProjectService(ProjectRepository projectRepository, WorkspaceMemberService workspaceMemberService) {
+	public ProjectService(ProjectRepository projectRepository, UserRepository userRepository,
+			ProjectMemberRepository projectMemberRepository, WorkspaceMemberService workspaceMemberService) {
 		this.projectRepository = projectRepository;
+		this.userRepository = userRepository;
+		this.projectMemberRepository = projectMemberRepository;
 		this.workspaceMemberService = workspaceMemberService;
 	}
 
@@ -50,7 +60,18 @@ public class ProjectService {
 		project.setCreatedAt(now);
 		project.setUpdatedAt(now);
 
-		return mapToResponse(projectRepository.save(project));
+		Project savedProject = projectRepository.save(project);
+
+		User owner = userRepository.findByEmail(email)
+				.orElseThrow(() -> new IllegalArgumentException("User not found"));
+		ProjectMember ownerMembership = new ProjectMember();
+		ownerMembership.setProject(savedProject);
+		ownerMembership.setUser(owner);
+		ownerMembership.setRole(ProjectRole.OWNER);
+		ownerMembership.setJoinedAt(now);
+		projectMemberRepository.save(ownerMembership);
+
+		return mapToResponse(savedProject);
 	}
 
 	@Transactional
@@ -73,6 +94,7 @@ public class ProjectService {
 				.orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
 		workspaceMemberService.getWorkspaceForOwner(email, project.getWorkspace().getId());
+		projectMemberRepository.deleteAll(projectMemberRepository.findByProject(project));
 		projectRepository.delete(project);
 	}
 

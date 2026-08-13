@@ -1,6 +1,8 @@
 package com.collabspace.feature.project;
 
 import com.collabspace.feature.project.dto.CreateProjectRequest;
+import com.collabspace.feature.project.dto.AddProjectMemberRequest;
+import com.collabspace.feature.project.dto.ProjectMemberResponse;
 import com.collabspace.feature.project.dto.ProjectResponse;
 import com.collabspace.feature.project.dto.UpdateProjectRequest;
 import jakarta.validation.Valid;
@@ -21,9 +23,11 @@ import java.util.List;
 public class ProjectController {
 
 	private final ProjectService projectService;
+	private final ProjectMemberService projectMemberService;
 
-	public ProjectController(ProjectService projectService) {
+	public ProjectController(ProjectService projectService, ProjectMemberService projectMemberService) {
 		this.projectService = projectService;
+		this.projectMemberService = projectMemberService;
 	}
 
 	@GetMapping("/api/projects/{id}")
@@ -43,6 +47,27 @@ public class ProjectController {
 	public ResponseEntity<Void> deleteProject(@PathVariable Long id) {
 		String email = SecurityContextHolder.getContext().getAuthentication().getName();
 		projectService.deleteProject(email, id);
+		return ResponseEntity.noContent().build();
+	}
+
+	@GetMapping("/api/projects/{id}/members")
+	public ResponseEntity<List<ProjectMemberResponse>> getProjectMembers(@PathVariable Long id) {
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(projectMemberService.getProjectMembers(email, id));
+	}
+
+	@PostMapping("/api/projects/{id}/members")
+	public ResponseEntity<ProjectMemberResponse> addProjectMember(@PathVariable Long id,
+			@Valid @RequestBody AddProjectMemberRequest request) {
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+		ProjectMemberResponse response = projectMemberService.addMember(email, id, request);
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
+	}
+
+	@DeleteMapping("/api/projects/{id}/members/{userId}")
+	public ResponseEntity<Void> removeProjectMember(@PathVariable Long id, @PathVariable Long userId) {
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+		projectMemberService.removeMember(email, id, userId);
 		return ResponseEntity.noContent().build();
 	}
 
