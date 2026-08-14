@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -44,6 +45,18 @@ public class TaskController {
 		String email = SecurityContextHolder.getContext().getAuthentication().getName();
 		taskService.deleteTask(email, id);
 		return ResponseEntity.noContent().build();
+	}
+
+	@PutMapping("/api/tasks/{id}/assignee/{userId}")
+	public ResponseEntity<TaskResponse> assignTask(@PathVariable Long id, @PathVariable Long userId) {
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(taskService.assignTask(email, id, userId));
+	}
+
+	@DeleteMapping("/api/tasks/{id}/assignee")
+	public ResponseEntity<TaskResponse> unassignTask(@PathVariable Long id) {
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+		return ResponseEntity.ok(taskService.unassignTask(email, id));
 	}
 
 	@GetMapping("/api/projects/{projectId}/tasks")

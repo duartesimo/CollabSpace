@@ -50,6 +50,11 @@ public class ProjectMemberService {
 		return project;
 	}
 
+	public void verifyProjectMember(Project project, User user) {
+		projectMemberRepository.findByProjectAndUser(project, user)
+				.orElseThrow(() -> new IllegalArgumentException("User is not a member of this project"));
+	}
+
 	@Transactional
 	public ProjectMemberResponse addMember(String email, Long projectId, AddProjectMemberRequest request) {
 		Project project = getProject(projectId);

@@ -8,6 +8,7 @@ public class TaskResponse {
 
 	private Long id;
 	private Long projectId;
+	private TaskAssigneeResponse assignee;
 	private String title;
 	private String description;
 	private TaskStatus status;
@@ -28,6 +29,14 @@ public class TaskResponse {
 
 	public void setProjectId(Long projectId) {
 		this.projectId = projectId;
+	}
+
+	public TaskAssigneeResponse getAssignee() {
+		return assignee;
+	}
+
+	public void setAssignee(TaskAssigneeResponse assignee) {
+		this.assignee = assignee;
 	}
 
 	public String getTitle() {

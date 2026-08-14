@@ -1,6 +1,7 @@
 package com.collabspace.feature.task;
 
 import com.collabspace.feature.project.Project;
+import com.collabspace.feature.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -25,6 +26,10 @@ public class Task {
 	@ManyToOne(optional = false)
 	@JoinColumn(name = "project_id", nullable = false)
 	private Project project;
+
+	@ManyToOne(optional = true)
+	@JoinColumn(name = "assignee_id")
+	private User assignee;
 
 	@Column(name = "title", nullable = false, length = 100)
 	private String title;
@@ -56,6 +61,14 @@ public class Task {
 
 	public void setProject(Project project) {
 		this.project = project;
+	}
+
+	public User getAssignee() {
+		return assignee;
+	}
+
+	public void setAssignee(User assignee) {
+		this.assignee = assignee;
 	}
 
 	public String getTitle() {
