@@ -3,15 +3,19 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import client from '../api/client'
 import {
 	addProjectMember,
+	createProjectTask,
 	deleteProject,
 	getProject,
 	getProjectMembers,
+	getProjectTasks,
 	getWorkspaceMembers,
 	removeProjectMember,
 	updateProject
 } from '../features/workspace/api/workspace'
 import type { Project, ProjectStatus } from '../features/project/types/Project'
 import type { ProjectMember } from '../features/project/types/ProjectMember'
+import TaskCard from '../features/task/components/TaskCard'
+import type { Task } from '../features/task/types/Task'
 import type { WorkspaceMember } from '../features/workspace/types/WorkspaceMember'
 
 interface CurrentUserResponse {
@@ -58,6 +62,13 @@ export default function ProjectDetail() {
 	const [projectMemberSubmitError, setProjectMemberSubmitError] = useState<string | null>(null)
 	const [removingProjectMemberId, setRemovingProjectMemberId] = useState<number | null>(null)
 	const [projectMemberRemoveError, setProjectMemberRemoveError] = useState<string | null>(null)
+	const [tasks, setTasks] = useState<Task[]>([])
+	const [tasksLoading, setTasksLoading] = useState(false)
+	const [tasksError, setTasksError] = useState<string | null>(null)
+	const [taskTitle, setTaskTitle] = useState('')
+	const [taskDescription, setTaskDescription] = useState('')
+	const [submittingTask, setSubmittingTask] = useState(false)
+	const [taskSubmitError, setTaskSubmitError] = useState<string | null>(null)
 
 	useEffect(() => {
 		const fetchCurrentUser = async () => {
@@ -133,6 +144,41 @@ export default function ProjectDetail() {
 		}
 
 		void fetchMembers()
+
+		return () => {
+			isMounted = false
+		}
+	}, [project])
+
+	useEffect(() => {
+		if (project === null) {
+			setTasks([])
+			return
+		}
+
+		let isMounted = true
+
+		const fetchTasks = async () => {
+			setTasksLoading(true)
+			setTasksError(null)
+
+			try {
+				const data = await getProjectTasks(project.id)
+				if (isMounted) {
+					setTasks(data)
+				}
+			} catch {
+				if (isMounted) {
+					setTasksError('Unable to load project tasks right now.')
+				}
+			} finally {
+				if (isMounted) {
+					setTasksLoading(false)
+				}
+			}
+		}
+
+		void fetchTasks()
 
 		return () => {
 			isMounted = false
@@ -274,6 +320,32 @@ export default function ProjectDetail() {
 			setProjectMemberRemoveError(apiMessage || 'Unable to remove this member right now.')
 		} finally {
 			setRemovingProjectMemberId(null)
+		}
+	}
+
+	const handleCreateTask = async (event: React.FormEvent) => {
+		event.preventDefault()
+		if (projectId === null || !taskTitle.trim()) {
+			setTaskSubmitError('Task title is required.')
+			return
+		}
+
+		setSubmittingTask(true)
+		setTaskSubmitError(null)
+
+		try {
+			const createdTask = await createProjectTask(projectId, {
+				title: taskTitle.trim(),
+				description: taskDescription.trim()
+			})
+			setTasks((currentTasks) => [createdTask, ...currentTasks])
+			setTaskTitle('')
+			setTaskDescription('')
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setTaskSubmitError(apiMessage || 'Unable to create this task right now.')
+		} finally {
+			setSubmittingTask(false)
 		}
 	}
 
@@ -435,6 +507,93 @@ export default function ProjectDetail() {
 												</div>
 											</div>
 										))}
+									</div>
+								)}
+							</div>
+
+							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+									<div>
+										<h2 className="text-lg font-semibold text-white">Tasks</h2>
+										<p className="mt-2 text-sm text-slate-400">
+											Tasks in this project.
+										</p>
+									</div>
+
+									<form className="w-full max-w-md space-y-3" onSubmit={handleCreateTask}>
+										<input
+											type="text"
+											value={taskTitle}
+											onChange={(event) => setTaskTitle(event.target.value)}
+											placeholder="Task title"
+											maxLength={100}
+											required
+											className="w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+										/>
+										<textarea
+											value={taskDescription}
+											onChange={(event) => setTaskDescription(event.target.value)}
+											placeholder="Task description"
+											maxLength={500}
+											rows={3}
+											className="w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+										/>
+										{taskSubmitError && (
+											<div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+												{taskSubmitError}
+											</div>
+										)}
+										<button
+											type="submit"
+											disabled={submittingTask}
+											className="rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+										>
+											{submittingTask ? 'Creating...' : 'Create task'}
+										</button>
+									</form>
+								</div>
+
+								{tasksLoading && (
+									<div className="mt-6 text-sm text-slate-400">Loading tasks...</div>
+								)}
+
+								{tasksError && !tasksLoading && (
+									<div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{tasksError}
+									</div>
+								)}
+
+								{!tasksLoading && !tasksError && tasks.length === 0 && (
+									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
+										No tasks yet.
+									</div>
+								)}
+
+								{!tasksLoading && !tasksError && tasks.length > 0 && (
+									<div className="mt-6 grid gap-4 xl:grid-cols-3">
+										{(['TODO', 'IN_PROGRESS', 'DONE'] as const).map((status) => {
+											const columnTasks = tasks.filter((task) => task.status === status)
+
+											return (
+												<div key={status} className="rounded-3xl border border-slate-800 bg-slate-900/40 p-4">
+													<div className="flex items-center justify-between gap-3">
+														<h3 className="font-semibold text-white">{status}</h3>
+														<span className="rounded-full bg-indigo-500/15 px-3 py-1 text-xs font-semibold text-indigo-300">
+															{columnTasks.length}
+														</span>
+													</div>
+													<div className="mt-4 space-y-3">
+														{columnTasks.length > 0 ? (
+															columnTasks.map((task) => <TaskCard key={task.id} task={task} />)
+														) : (
+															<p className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-500">
+																No {status.toLowerCase().replace('_', ' ')} tasks.
+															</p>
+														)}
+													</div>
+												</div>
+											)
+										})}
 									</div>
 								)}
 							</div>

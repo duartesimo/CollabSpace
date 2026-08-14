@@ -1,0 +1,454 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import {
+	assignTask,
+	deleteTask,
+	getProjectMembers,
+	getTask,
+	unassignTask,
+	updateTask
+} from '../features/workspace/api/workspace'
+import type { Task, TaskStatus } from '../features/task/types/Task'
+import type { ProjectMember } from '../features/project/types/ProjectMember'
+
+export default function TaskDetail() {
+	const { id } = useParams<{ id: string }>()
+	const navigate = useNavigate()
+
+	const taskId = useMemo(() => {
+		if (!id) {
+			return null
+		}
+
+		const parsedId = Number(id)
+		if (!Number.isInteger(parsedId) || parsedId <= 0) {
+			return null
+		}
+
+		return parsedId
+	}, [id])
+
+	const [task, setTask] = useState<Task | null>(null)
+	const [loading, setLoading] = useState(false)
+	const [error, setError] = useState<string | null>(null)
+	const [taskTitle, setTaskTitle] = useState('')
+	const [taskDescription, setTaskDescription] = useState('')
+	const [taskStatus, setTaskStatus] = useState<TaskStatus>('TODO')
+	const [savingTask, setSavingTask] = useState(false)
+	const [taskSaveError, setTaskSaveError] = useState<string | null>(null)
+	const [deletingTask, setDeletingTask] = useState(false)
+	const [taskDeleteError, setTaskDeleteError] = useState<string | null>(null)
+	const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([])
+	const [projectMembersLoading, setProjectMembersLoading] = useState(false)
+	const [projectMembersError, setProjectMembersError] = useState<string | null>(null)
+	const [selectedAssigneeId, setSelectedAssigneeId] = useState('')
+	const [assigningTask, setAssigningTask] = useState(false)
+	const [assignmentError, setAssignmentError] = useState<string | null>(null)
+	const [unassigningTask, setUnassigningTask] = useState(false)
+
+	const taskProjectId = task?.projectId
+
+	useEffect(() => {
+		if (taskId === null) {
+			setError('Invalid task id.')
+			setTask(null)
+			return
+		}
+
+		let isMounted = true
+
+		const fetchTask = async () => {
+			setLoading(true)
+			setError(null)
+
+			try {
+				const data = await getTask(taskId)
+				if (isMounted) {
+					setTask(data)
+					setTaskTitle(data.title)
+					setTaskDescription(data.description || '')
+					setTaskStatus(data.status)
+				}
+			} catch {
+				if (isMounted) {
+					setError('Unable to load this task right now.')
+				}
+			} finally {
+				if (isMounted) {
+					setLoading(false)
+				}
+			}
+		}
+
+		void fetchTask()
+
+		return () => {
+			isMounted = false
+		}
+	}, [taskId])
+
+	useEffect(() => {
+		if (taskProjectId === undefined) {
+			setProjectMembers([])
+			return
+		}
+
+		let isMounted = true
+
+		const fetchProjectMembers = async () => {
+			setProjectMembersLoading(true)
+			setProjectMembersError(null)
+
+			try {
+				const data = await getProjectMembers(taskProjectId)
+				if (isMounted) {
+					setProjectMembers(data)
+				}
+			} catch {
+				if (isMounted) {
+					setProjectMembersError('Unable to load project members right now.')
+				}
+			} finally {
+				if (isMounted) {
+					setProjectMembersLoading(false)
+				}
+			}
+		}
+
+		void fetchProjectMembers()
+
+		return () => {
+			isMounted = false
+		}
+	}, [taskProjectId])
+
+	const handleUpdateTask = async (event: React.FormEvent) => {
+		event.preventDefault()
+		if (taskId === null || !taskTitle.trim()) {
+			setTaskSaveError('Task title is required.')
+			return
+		}
+
+		setSavingTask(true)
+		setTaskSaveError(null)
+
+		try {
+			const updatedTask = await updateTask(taskId, {
+				title: taskTitle.trim(),
+				description: taskDescription.trim(),
+				status: taskStatus
+			})
+			setTask(updatedTask)
+			setTaskTitle(updatedTask.title)
+			setTaskDescription(updatedTask.description || '')
+			setTaskStatus(updatedTask.status)
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setTaskSaveError(apiMessage || 'Unable to update this task right now.')
+		} finally {
+			setSavingTask(false)
+		}
+	}
+
+	const handleDeleteTask = async () => {
+		if (
+			taskId === null ||
+			task === null ||
+			!window.confirm('Delete this task? This action cannot be undone.')
+		) {
+			return
+		}
+
+		setDeletingTask(true)
+		setTaskDeleteError(null)
+
+		try {
+			await deleteTask(taskId)
+			navigate(`/projects/${task.projectId}`)
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setTaskDeleteError(apiMessage || 'Unable to delete this task right now.')
+		} finally {
+			setDeletingTask(false)
+		}
+	}
+
+	const handleAssignTask = async () => {
+		if (taskId === null || !selectedAssigneeId) {
+			setAssignmentError('Please select a project member.')
+			return
+		}
+
+		setAssigningTask(true)
+		setAssignmentError(null)
+
+		try {
+			const updatedTask = await assignTask(taskId, Number(selectedAssigneeId))
+			setTask(updatedTask)
+			setSelectedAssigneeId('')
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setAssignmentError(apiMessage || 'Unable to assign this task right now.')
+		} finally {
+			setAssigningTask(false)
+		}
+	}
+
+	const handleUnassignTask = async () => {
+		if (taskId === null) {
+			return
+		}
+
+		setUnassigningTask(true)
+		setAssignmentError(null)
+
+		try {
+			const updatedTask = await unassignTask(taskId)
+			setTask(updatedTask)
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setAssignmentError(apiMessage || 'Unable to unassign this task right now.')
+		} finally {
+			setUnassigningTask(false)
+		}
+	}
+
+	const backTo = task ? `/projects/${task.projectId}` : '/'
+	const backLabel = task ? '← Back to project' : '← Back to dashboard'
+
+	return (
+		<div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
+			<div className="mx-auto max-w-5xl">
+				<div className="mb-8 flex items-center justify-between">
+					<Link
+						to={backTo}
+						className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900/80 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
+					>
+						{backLabel}
+					</Link>
+				</div>
+
+				<div className="rounded-[2rem] border border-slate-800 bg-slate-900/60 p-8 shadow-2xl shadow-black/20 backdrop-blur">
+					{loading && (
+						<div className="py-16 text-center text-slate-400">Loading task...</div>
+					)}
+
+					{error && !loading && (
+						<div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
+							{error}
+						</div>
+					)}
+
+					{!loading && !error && task && (
+						<div className="space-y-8">
+							<div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+								<div>
+									<p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-300">
+										Task overview
+									</p>
+									<h1 className="mt-3 text-4xl font-semibold tracking-tight text-white">{task.title}</h1>
+								</div>
+								<span className="w-fit rounded-full bg-indigo-500/15 px-3 py-1 text-xs font-semibold text-indigo-300">
+									{task.status}
+								</span>
+							</div>
+
+							<div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
+								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+									<h2 className="text-lg font-semibold text-white">Details</h2>
+									<p className="mt-4 leading-7 text-slate-400">
+										{task.description || 'No description provided for this task yet.'}
+									</p>
+								</div>
+
+								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+									<h2 className="text-lg font-semibold text-white">Task info</h2>
+									<div className="mt-5 space-y-4 text-sm text-slate-400">
+										<div>
+											<p className="text-slate-500">Project</p>
+											<Link to={`/projects/${task.projectId}`} className="mt-1 block font-medium text-indigo-300 hover:text-indigo-200">
+												Project #{task.projectId}
+											</Link>
+										</div>
+										<div>
+											<p className="text-slate-500">Created</p>
+											<p className="mt-1 font-medium text-slate-200">
+												{new Date(task.createdAt).toLocaleDateString()}
+											</p>
+										</div>
+										<div>
+											<p className="text-slate-500">Updated</p>
+											<p className="mt-1 font-medium text-slate-200">
+												{new Date(task.updatedAt).toLocaleDateString()}
+											</p>
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+								<h2 className="text-lg font-semibold text-white">Assignment</h2>
+								<p className="mt-2 text-sm text-slate-400">
+									Assign this task to a project member.
+								</p>
+
+								<div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+									<p className="text-sm text-slate-500">Current assignee</p>
+									{task.assignee ? (
+										<div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+											<div>
+												<p className="font-medium text-white">{task.assignee.username}</p>
+												<p className="mt-1 text-sm text-slate-400">{task.assignee.email}</p>
+											</div>
+											<button
+												type="button"
+												onClick={() => void handleUnassignTask()}
+												disabled={unassigningTask}
+												className="rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+											>
+												{unassigningTask ? 'Removing...' : 'Unassign'}
+											</button>
+										</div>
+									) : (
+										<p className="mt-2 text-sm text-slate-400">Unassigned</p>
+									)}
+								</div>
+
+								{projectMembersLoading && (
+									<div className="mt-4 text-sm text-slate-400">Loading project members...</div>
+								)}
+
+								{projectMembersError && !projectMembersLoading && (
+									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{projectMembersError}
+									</div>
+								)}
+
+								{!projectMembersLoading && !projectMembersError && (
+									<div className="mt-4 flex flex-col gap-3 sm:flex-row">
+										<select
+											value={selectedAssigneeId}
+											onChange={(event) => setSelectedAssigneeId(event.target.value)}
+											className="w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+										>
+											<option value="">Select a project member</option>
+											{projectMembers.map((member) => (
+												<option key={member.userId} value={member.userId}>
+													{member.username} ({member.email})
+												</option>
+											))}
+										</select>
+										<button
+											type="button"
+											onClick={() => void handleAssignTask()}
+											disabled={assigningTask || projectMembers.length === 0}
+											className="rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+										>
+											{assigningTask ? 'Assigning...' : 'Assign'}
+										</button>
+									</div>
+								)}
+
+								{assignmentError && (
+									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{assignmentError}
+									</div>
+								)}
+							</div>
+
+							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+								<h2 className="text-lg font-semibold text-white">Settings</h2>
+								<p className="mt-2 text-sm text-slate-400">
+									Update this task’s details and status.
+								</p>
+
+								<form className="mt-6 space-y-4" onSubmit={handleUpdateTask}>
+									<div>
+										<label htmlFor="task-title" className="text-sm font-medium text-slate-200">
+											Task title
+										</label>
+										<input
+											id="task-title"
+											type="text"
+											value={taskTitle}
+											onChange={(event) => setTaskTitle(event.target.value)}
+											maxLength={100}
+											required
+											className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+										/>
+									</div>
+
+									<div>
+										<label htmlFor="task-description" className="text-sm font-medium text-slate-200">
+											Description
+										</label>
+										<textarea
+											id="task-description"
+											value={taskDescription}
+											onChange={(event) => setTaskDescription(event.target.value)}
+											maxLength={500}
+											rows={4}
+											className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+										/>
+									</div>
+
+									<div>
+										<label htmlFor="task-status" className="text-sm font-medium text-slate-200">
+											Status
+										</label>
+										<select
+											id="task-status"
+											value={taskStatus}
+											onChange={(event) => setTaskStatus(event.target.value as TaskStatus)}
+											className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+										>
+											<option value="TODO">TODO</option>
+											<option value="IN_PROGRESS">IN_PROGRESS</option>
+											<option value="DONE">DONE</option>
+										</select>
+									</div>
+
+									{taskSaveError && (
+										<div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+											{taskSaveError}
+										</div>
+									)}
+
+									<button
+										type="submit"
+										disabled={savingTask}
+										className="rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+									>
+										{savingTask ? 'Saving...' : 'Save changes'}
+									</button>
+								</form>
+							</div>
+
+							<div className="rounded-3xl border border-red-500/30 bg-red-500/5 p-6">
+								<h2 className="text-lg font-semibold text-red-200">Danger zone</h2>
+								<p className="mt-2 text-sm text-slate-400">
+									Permanently delete this task.
+								</p>
+
+								{taskDeleteError && (
+									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{taskDeleteError}
+									</div>
+								)}
+
+								<button
+									type="button"
+									onClick={() => void handleDeleteTask()}
+									disabled={deletingTask}
+									className="mt-5 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+								>
+									{deletingTask ? 'Deleting...' : 'Delete task'}
+								</button>
+							</div>
+						</div>
+					)}
+				</div>
+			</div>
+		</div>
+	)
+}

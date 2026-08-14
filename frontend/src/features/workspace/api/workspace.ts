@@ -1,6 +1,7 @@
 import client from '../../../api/client'
 import type { Project, ProjectStatus } from '../../project/types/Project'
 import type { ProjectMember } from '../../project/types/ProjectMember'
+import type { Task, TaskStatus } from '../../task/types/Task'
 import type { Workspace } from '../types/Workspace'
 import type { WorkspaceMember } from '../types/WorkspaceMember'
 
@@ -73,6 +74,46 @@ export const addProjectMember = async (projectId: number, email: string): Promis
 
 export const removeProjectMember = async (projectId: number, userId: number): Promise<void> => {
 	await client.delete(`/projects/${projectId}/members/${userId}`)
+}
+
+export const getTask = async (id: number): Promise<Task> => {
+	const response = await client.get<Task>(`/tasks/${id}`)
+	return response.data
+}
+
+export const updateTask = async (
+	taskId: number,
+	data: { title: string; description?: string; status: TaskStatus }
+): Promise<Task> => {
+	const response = await client.patch<Task>(`/tasks/${taskId}`, data)
+	return response.data
+}
+
+export const deleteTask = async (taskId: number): Promise<void> => {
+	await client.delete(`/tasks/${taskId}`)
+}
+
+export const assignTask = async (taskId: number, userId: number): Promise<Task> => {
+	const response = await client.put<Task>(`/tasks/${taskId}/assignee/${userId}`)
+	return response.data
+}
+
+export const unassignTask = async (taskId: number): Promise<Task> => {
+	const response = await client.delete<Task>(`/tasks/${taskId}/assignee`)
+	return response.data
+}
+
+export const getProjectTasks = async (projectId: number): Promise<Task[]> => {
+	const response = await client.get<Task[]>(`/projects/${projectId}/tasks`)
+	return response.data
+}
+
+export const createProjectTask = async (
+	projectId: number,
+	data: { title: string; description?: string }
+): Promise<Task> => {
+	const response = await client.post<Task>(`/projects/${projectId}/tasks`, data)
+	return response.data
 }
 
 export const getWorkspaceMembers = async (workspaceId: number): Promise<WorkspaceMember[]> => {
