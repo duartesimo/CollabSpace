@@ -28,6 +28,14 @@ public class TaskService {
 				.toList();
 	}
 
+	public TaskResponse getTask(String email, Long taskId) {
+		Task task = taskRepository.findById(taskId)
+				.orElseThrow(() -> new IllegalArgumentException("Task not found"));
+
+		projectMemberService.getProjectForMember(email, task.getProject().getId());
+		return mapToResponse(task);
+	}
+
 	@Transactional
 	public TaskResponse createTask(String email, Long projectId, CreateTaskRequest request) {
 		Project project = projectMemberService.getProjectForMember(email, projectId);

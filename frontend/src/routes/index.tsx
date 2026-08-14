@@ -6,6 +6,7 @@ import Register from '../pages/Register'
 import Profile from '../pages/Profile'
 import CreateWorkspace from '../pages/CreateWorkspace'
 import ProjectDetail from '../pages/ProjectDetail'
+import TaskDetail from '../pages/TaskDetail'
 import WorkspaceDetail from '../pages/WorkspaceDetail'
 import MainLayout from '../layouts/MainLayout'
 import ProtectedRoute from './ProtectedRoute'
@@ -24,6 +25,7 @@ export default function AppRoutes() {
 						<Route path="/workspaces/new" element={<CreateWorkspace />} />
 						<Route path="/workspaces/:id" element={<WorkspaceDetail />} />
 						<Route path="/projects/:id" element={<ProjectDetail />} />
+						<Route path="/tasks/:id" element={<TaskDetail />} />
 					</Route>
 				</Route>
 			</Routes>
