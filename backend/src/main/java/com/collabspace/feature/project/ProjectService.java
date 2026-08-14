@@ -10,6 +10,7 @@ import com.collabspace.feature.user.User;
 import com.collabspace.feature.user.UserRepository;
 import com.collabspace.feature.workspace.Workspace;
 import com.collabspace.feature.workspace.WorkspaceMemberService;
+import com.collabspace.feature.task.TaskRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,13 +23,16 @@ public class ProjectService {
 	private final ProjectRepository projectRepository;
 	private final UserRepository userRepository;
 	private final ProjectMemberRepository projectMemberRepository;
+	private final TaskRepository taskRepository;
 	private final WorkspaceMemberService workspaceMemberService;
 
 	public ProjectService(ProjectRepository projectRepository, UserRepository userRepository,
-			ProjectMemberRepository projectMemberRepository, WorkspaceMemberService workspaceMemberService) {
+			ProjectMemberRepository projectMemberRepository, TaskRepository taskRepository,
+			WorkspaceMemberService workspaceMemberService) {
 		this.projectRepository = projectRepository;
 		this.userRepository = userRepository;
 		this.projectMemberRepository = projectMemberRepository;
+		this.taskRepository = taskRepository;
 		this.workspaceMemberService = workspaceMemberService;
 	}
 
@@ -94,6 +98,7 @@ public class ProjectService {
 				.orElseThrow(() -> new IllegalArgumentException("Project not found"));
 
 		workspaceMemberService.getWorkspaceForOwner(email, project.getWorkspace().getId());
+		taskRepository.deleteAll(taskRepository.findByProjectOrderByCreatedAtDesc(project));
 		projectMemberRepository.deleteAll(projectMemberRepository.findByProject(project));
 		projectRepository.delete(project);
 	}

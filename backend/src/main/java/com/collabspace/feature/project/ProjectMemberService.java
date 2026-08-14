@@ -39,6 +39,17 @@ public class ProjectMemberService {
 				.toList();
 	}
 
+	public Project getProjectForMember(String email, Long projectId) {
+		User currentUser = userRepository.findByEmail(email)
+				.orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+		Project project = getProject(projectId);
+		projectMemberRepository.findByProjectAndUser(project, currentUser)
+				.orElseThrow(() -> new IllegalArgumentException("You are not a member of this project"));
+
+		return project;
+	}
+
 	@Transactional
 	public ProjectMemberResponse addMember(String email, Long projectId, AddProjectMemberRequest request) {
 		Project project = getProject(projectId);
