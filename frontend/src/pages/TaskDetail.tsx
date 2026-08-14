@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { deleteTask, getTask, updateTask } from '../features/workspace/api/workspace'
+import {
+	assignTask,
+	deleteTask,
+	getProjectMembers,
+	getTask,
+	unassignTask,
+	updateTask
+} from '../features/workspace/api/workspace'
 import type { Task, TaskStatus } from '../features/task/types/Task'
+import type { ProjectMember } from '../features/project/types/ProjectMember'
 
 export default function TaskDetail() {
 	const { id } = useParams<{ id: string }>()
@@ -30,6 +38,15 @@ export default function TaskDetail() {
 	const [taskSaveError, setTaskSaveError] = useState<string | null>(null)
 	const [deletingTask, setDeletingTask] = useState(false)
 	const [taskDeleteError, setTaskDeleteError] = useState<string | null>(null)
+	const [projectMembers, setProjectMembers] = useState<ProjectMember[]>([])
+	const [projectMembersLoading, setProjectMembersLoading] = useState(false)
+	const [projectMembersError, setProjectMembersError] = useState<string | null>(null)
+	const [selectedAssigneeId, setSelectedAssigneeId] = useState('')
+	const [assigningTask, setAssigningTask] = useState(false)
+	const [assignmentError, setAssignmentError] = useState<string | null>(null)
+	const [unassigningTask, setUnassigningTask] = useState(false)
+
+	const taskProjectId = task?.projectId
 
 	useEffect(() => {
 		if (taskId === null) {
@@ -69,6 +86,41 @@ export default function TaskDetail() {
 			isMounted = false
 		}
 	}, [taskId])
+
+	useEffect(() => {
+		if (taskProjectId === undefined) {
+			setProjectMembers([])
+			return
+		}
+
+		let isMounted = true
+
+		const fetchProjectMembers = async () => {
+			setProjectMembersLoading(true)
+			setProjectMembersError(null)
+
+			try {
+				const data = await getProjectMembers(taskProjectId)
+				if (isMounted) {
+					setProjectMembers(data)
+				}
+			} catch {
+				if (isMounted) {
+					setProjectMembersError('Unable to load project members right now.')
+				}
+			} finally {
+				if (isMounted) {
+					setProjectMembersLoading(false)
+				}
+			}
+		}
+
+		void fetchProjectMembers()
+
+		return () => {
+			isMounted = false
+		}
+	}, [taskProjectId])
 
 	const handleUpdateTask = async (event: React.FormEvent) => {
 		event.preventDefault()
@@ -118,6 +170,46 @@ export default function TaskDetail() {
 			setTaskDeleteError(apiMessage || 'Unable to delete this task right now.')
 		} finally {
 			setDeletingTask(false)
+		}
+	}
+
+	const handleAssignTask = async () => {
+		if (taskId === null || !selectedAssigneeId) {
+			setAssignmentError('Please select a project member.')
+			return
+		}
+
+		setAssigningTask(true)
+		setAssignmentError(null)
+
+		try {
+			const updatedTask = await assignTask(taskId, Number(selectedAssigneeId))
+			setTask(updatedTask)
+			setSelectedAssigneeId('')
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setAssignmentError(apiMessage || 'Unable to assign this task right now.')
+		} finally {
+			setAssigningTask(false)
+		}
+	}
+
+	const handleUnassignTask = async () => {
+		if (taskId === null) {
+			return
+		}
+
+		setUnassigningTask(true)
+		setAssignmentError(null)
+
+		try {
+			const updatedTask = await unassignTask(taskId)
+			setTask(updatedTask)
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setAssignmentError(apiMessage || 'Unable to unassign this task right now.')
+		} finally {
+			setUnassigningTask(false)
 		}
 	}
 
@@ -192,6 +284,76 @@ export default function TaskDetail() {
 										</div>
 									</div>
 								</div>
+							</div>
+
+							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+								<h2 className="text-lg font-semibold text-white">Assignment</h2>
+								<p className="mt-2 text-sm text-slate-400">
+									Assign this task to a project member.
+								</p>
+
+								<div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
+									<p className="text-sm text-slate-500">Current assignee</p>
+									{task.assignee ? (
+										<div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+											<div>
+												<p className="font-medium text-white">{task.assignee.username}</p>
+												<p className="mt-1 text-sm text-slate-400">{task.assignee.email}</p>
+											</div>
+											<button
+												type="button"
+												onClick={() => void handleUnassignTask()}
+												disabled={unassigningTask}
+												className="rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+											>
+												{unassigningTask ? 'Removing...' : 'Unassign'}
+											</button>
+										</div>
+									) : (
+										<p className="mt-2 text-sm text-slate-400">Unassigned</p>
+									)}
+								</div>
+
+								{projectMembersLoading && (
+									<div className="mt-4 text-sm text-slate-400">Loading project members...</div>
+								)}
+
+								{projectMembersError && !projectMembersLoading && (
+									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{projectMembersError}
+									</div>
+								)}
+
+								{!projectMembersLoading && !projectMembersError && (
+									<div className="mt-4 flex flex-col gap-3 sm:flex-row">
+										<select
+											value={selectedAssigneeId}
+											onChange={(event) => setSelectedAssigneeId(event.target.value)}
+											className="w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+										>
+											<option value="">Select a project member</option>
+											{projectMembers.map((member) => (
+												<option key={member.userId} value={member.userId}>
+													{member.username} ({member.email})
+												</option>
+											))}
+										</select>
+										<button
+											type="button"
+											onClick={() => void handleAssignTask()}
+											disabled={assigningTask || projectMembers.length === 0}
+											className="rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+										>
+											{assigningTask ? 'Assigning...' : 'Assign'}
+										</button>
+									</div>
+								)}
+
+								{assignmentError && (
+									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{assignmentError}
+									</div>
+								)}
 							</div>
 
 							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">

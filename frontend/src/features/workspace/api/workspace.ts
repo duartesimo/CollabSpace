@@ -93,6 +93,16 @@ export const deleteTask = async (taskId: number): Promise<void> => {
 	await client.delete(`/tasks/${taskId}`)
 }
 
+export const assignTask = async (taskId: number, userId: number): Promise<Task> => {
+	const response = await client.put<Task>(`/tasks/${taskId}/assignee/${userId}`)
+	return response.data
+}
+
+export const unassignTask = async (taskId: number): Promise<Task> => {
+	const response = await client.delete<Task>(`/tasks/${taskId}/assignee`)
+	return response.data
+}
+
 export const getWorkspaceMembers = async (workspaceId: number): Promise<WorkspaceMember[]> => {
 	const response = await client.get<WorkspaceMember[]>(`/workspaces/${workspaceId}/members`)
 	return response.data
