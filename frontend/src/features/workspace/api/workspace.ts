@@ -103,6 +103,19 @@ export const unassignTask = async (taskId: number): Promise<Task> => {
 	return response.data
 }
 
+export const getProjectTasks = async (projectId: number): Promise<Task[]> => {
+	const response = await client.get<Task[]>(`/projects/${projectId}/tasks`)
+	return response.data
+}
+
+export const createProjectTask = async (
+	projectId: number,
+	data: { title: string; description?: string }
+): Promise<Task> => {
+	const response = await client.post<Task>(`/projects/${projectId}/tasks`, data)
+	return response.data
+}
+
 export const getWorkspaceMembers = async (workspaceId: number): Promise<WorkspaceMember[]> => {
 	const response = await client.get<WorkspaceMember[]>(`/workspaces/${workspaceId}/members`)
 	return response.data
