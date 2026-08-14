@@ -1,7 +1,7 @@
 import client from '../../../api/client'
 import type { Project, ProjectStatus } from '../../project/types/Project'
 import type { ProjectMember } from '../../project/types/ProjectMember'
-import type { Task } from '../../task/types/Task'
+import type { Task, TaskStatus } from '../../task/types/Task'
 import type { Workspace } from '../types/Workspace'
 import type { WorkspaceMember } from '../types/WorkspaceMember'
 
@@ -79,6 +79,18 @@ export const removeProjectMember = async (projectId: number, userId: number): Pr
 export const getTask = async (id: number): Promise<Task> => {
 	const response = await client.get<Task>(`/tasks/${id}`)
 	return response.data
+}
+
+export const updateTask = async (
+	taskId: number,
+	data: { title: string; description?: string; status: TaskStatus }
+): Promise<Task> => {
+	const response = await client.patch<Task>(`/tasks/${taskId}`, data)
+	return response.data
+}
+
+export const deleteTask = async (taskId: number): Promise<void> => {
+	await client.delete(`/tasks/${taskId}`)
 }
 
 export const getWorkspaceMembers = async (workspaceId: number): Promise<WorkspaceMember[]> => {

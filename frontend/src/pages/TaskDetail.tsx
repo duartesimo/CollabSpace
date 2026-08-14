@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { getTask } from '../features/workspace/api/workspace'
-import type { Task } from '../features/task/types/Task'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { deleteTask, getTask, updateTask } from '../features/workspace/api/workspace'
+import type { Task, TaskStatus } from '../features/task/types/Task'
 
 export default function TaskDetail() {
 	const { id } = useParams<{ id: string }>()
+	const navigate = useNavigate()
 
 	const taskId = useMemo(() => {
 		if (!id) {
@@ -22,6 +23,13 @@ export default function TaskDetail() {
 	const [task, setTask] = useState<Task | null>(null)
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [taskTitle, setTaskTitle] = useState('')
+	const [taskDescription, setTaskDescription] = useState('')
+	const [taskStatus, setTaskStatus] = useState<TaskStatus>('TODO')
+	const [savingTask, setSavingTask] = useState(false)
+	const [taskSaveError, setTaskSaveError] = useState<string | null>(null)
+	const [deletingTask, setDeletingTask] = useState(false)
+	const [taskDeleteError, setTaskDeleteError] = useState<string | null>(null)
 
 	useEffect(() => {
 		if (taskId === null) {
@@ -40,6 +48,9 @@ export default function TaskDetail() {
 				const data = await getTask(taskId)
 				if (isMounted) {
 					setTask(data)
+					setTaskTitle(data.title)
+					setTaskDescription(data.description || '')
+					setTaskStatus(data.status)
 				}
 			} catch {
 				if (isMounted) {
@@ -58,6 +69,57 @@ export default function TaskDetail() {
 			isMounted = false
 		}
 	}, [taskId])
+
+	const handleUpdateTask = async (event: React.FormEvent) => {
+		event.preventDefault()
+		if (taskId === null || !taskTitle.trim()) {
+			setTaskSaveError('Task title is required.')
+			return
+		}
+
+		setSavingTask(true)
+		setTaskSaveError(null)
+
+		try {
+			const updatedTask = await updateTask(taskId, {
+				title: taskTitle.trim(),
+				description: taskDescription.trim(),
+				status: taskStatus
+			})
+			setTask(updatedTask)
+			setTaskTitle(updatedTask.title)
+			setTaskDescription(updatedTask.description || '')
+			setTaskStatus(updatedTask.status)
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setTaskSaveError(apiMessage || 'Unable to update this task right now.')
+		} finally {
+			setSavingTask(false)
+		}
+	}
+
+	const handleDeleteTask = async () => {
+		if (
+			taskId === null ||
+			task === null ||
+			!window.confirm('Delete this task? This action cannot be undone.')
+		) {
+			return
+		}
+
+		setDeletingTask(true)
+		setTaskDeleteError(null)
+
+		try {
+			await deleteTask(taskId)
+			navigate(`/projects/${task.projectId}`)
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setTaskDeleteError(apiMessage || 'Unable to delete this task right now.')
+		} finally {
+			setDeletingTask(false)
+		}
+	}
 
 	const backTo = task ? `/projects/${task.projectId}` : '/'
 	const backLabel = task ? '← Back to project' : '← Back to dashboard'
@@ -130,6 +192,96 @@ export default function TaskDetail() {
 										</div>
 									</div>
 								</div>
+							</div>
+
+							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+								<h2 className="text-lg font-semibold text-white">Settings</h2>
+								<p className="mt-2 text-sm text-slate-400">
+									Update this task’s details and status.
+								</p>
+
+								<form className="mt-6 space-y-4" onSubmit={handleUpdateTask}>
+									<div>
+										<label htmlFor="task-title" className="text-sm font-medium text-slate-200">
+											Task title
+										</label>
+										<input
+											id="task-title"
+											type="text"
+											value={taskTitle}
+											onChange={(event) => setTaskTitle(event.target.value)}
+											maxLength={100}
+											required
+											className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+										/>
+									</div>
+
+									<div>
+										<label htmlFor="task-description" className="text-sm font-medium text-slate-200">
+											Description
+										</label>
+										<textarea
+											id="task-description"
+											value={taskDescription}
+											onChange={(event) => setTaskDescription(event.target.value)}
+											maxLength={500}
+											rows={4}
+											className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+										/>
+									</div>
+
+									<div>
+										<label htmlFor="task-status" className="text-sm font-medium text-slate-200">
+											Status
+										</label>
+										<select
+											id="task-status"
+											value={taskStatus}
+											onChange={(event) => setTaskStatus(event.target.value as TaskStatus)}
+											className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+										>
+											<option value="TODO">TODO</option>
+											<option value="IN_PROGRESS">IN_PROGRESS</option>
+											<option value="DONE">DONE</option>
+										</select>
+									</div>
+
+									{taskSaveError && (
+										<div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+											{taskSaveError}
+										</div>
+									)}
+
+									<button
+										type="submit"
+										disabled={savingTask}
+										className="rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+									>
+										{savingTask ? 'Saving...' : 'Save changes'}
+									</button>
+								</form>
+							</div>
+
+							<div className="rounded-3xl border border-red-500/30 bg-red-500/5 p-6">
+								<h2 className="text-lg font-semibold text-red-200">Danger zone</h2>
+								<p className="mt-2 text-sm text-slate-400">
+									Permanently delete this task.
+								</p>
+
+								{taskDeleteError && (
+									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{taskDeleteError}
+									</div>
+								)}
+
+								<button
+									type="button"
+									onClick={() => void handleDeleteTask()}
+									disabled={deletingTask}
+									className="mt-5 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+								>
+									{deletingTask ? 'Deleting...' : 'Delete task'}
+								</button>
 							</div>
 						</div>
 					)}
