@@ -14,6 +14,7 @@ import {
 } from '../features/workspace/api/workspace'
 import type { Project, ProjectStatus } from '../features/project/types/Project'
 import type { ProjectMember } from '../features/project/types/ProjectMember'
+import TaskCard from '../features/task/components/TaskCard'
 import type { Task } from '../features/task/types/Task'
 import type { WorkspaceMember } from '../features/workspace/types/WorkspaceMember'
 
@@ -569,30 +570,30 @@ export default function ProjectDetail() {
 								)}
 
 								{!tasksLoading && !tasksError && tasks.length > 0 && (
-									<div className="mt-6 grid gap-3 md:grid-cols-2">
-										{tasks.map((task) => (
-											<Link
-												key={task.id}
-												to={`/tasks/${task.id}`}
-												className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 transition hover:border-slate-600 hover:bg-slate-900/70"
-											>
-												<div className="flex items-start justify-between gap-3">
-													<h3 className="font-medium text-white">{task.title}</h3>
-													<span className="rounded-full bg-indigo-500/15 px-3 py-1 text-xs font-semibold text-indigo-300">
-														{task.status}
-													</span>
+									<div className="mt-6 grid gap-4 xl:grid-cols-3">
+										{(['TODO', 'IN_PROGRESS', 'DONE'] as const).map((status) => {
+											const columnTasks = tasks.filter((task) => task.status === status)
+
+											return (
+												<div key={status} className="rounded-3xl border border-slate-800 bg-slate-900/40 p-4">
+													<div className="flex items-center justify-between gap-3">
+														<h3 className="font-semibold text-white">{status}</h3>
+														<span className="rounded-full bg-indigo-500/15 px-3 py-1 text-xs font-semibold text-indigo-300">
+															{columnTasks.length}
+														</span>
+													</div>
+													<div className="mt-4 space-y-3">
+														{columnTasks.length > 0 ? (
+															columnTasks.map((task) => <TaskCard key={task.id} task={task} />)
+														) : (
+															<p className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-500">
+																No {status.toLowerCase().replace('_', ' ')} tasks.
+															</p>
+														)}
+													</div>
 												</div>
-												<p className="mt-2 text-sm leading-6 text-slate-400">
-													{task.description || 'No description provided for this task yet.'}
-												</p>
-												<p className="mt-4 text-sm text-slate-400">
-													Assigned: {task.assignee ? task.assignee.username : 'Unassigned'}
-												</p>
-												<p className="mt-1 text-xs text-slate-500">
-													Created {new Date(task.createdAt).toLocaleDateString()}
-												</p>
-											</Link>
-										))}
+											)
+										})}
 									</div>
 								)}
 							</div>
