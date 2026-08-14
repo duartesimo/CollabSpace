@@ -4,6 +4,7 @@ import com.collabspace.feature.project.Project;
 import com.collabspace.feature.project.ProjectMemberService;
 import com.collabspace.feature.task.dto.CreateTaskRequest;
 import com.collabspace.feature.task.dto.TaskResponse;
+import com.collabspace.feature.task.dto.UpdateTaskRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +35,29 @@ public class TaskService {
 
 		projectMemberService.getProjectForMember(email, task.getProject().getId());
 		return mapToResponse(task);
+	}
+
+	@Transactional
+	public TaskResponse updateTask(String email, Long taskId, UpdateTaskRequest request) {
+		Task task = taskRepository.findById(taskId)
+				.orElseThrow(() -> new IllegalArgumentException("Task not found"));
+
+		projectMemberService.getProjectForMember(email, task.getProject().getId());
+		task.setTitle(request.getTitle());
+		task.setDescription(request.getDescription());
+		task.setStatus(request.getStatus());
+		task.setUpdatedAt(LocalDateTime.now());
+
+		return mapToResponse(taskRepository.save(task));
+	}
+
+	@Transactional
+	public void deleteTask(String email, Long taskId) {
+		Task task = taskRepository.findById(taskId)
+				.orElseThrow(() -> new IllegalArgumentException("Task not found"));
+
+		projectMemberService.getProjectForMember(email, task.getProject().getId());
+		taskRepository.delete(task);
 	}
 
 	@Transactional
