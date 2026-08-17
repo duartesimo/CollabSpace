@@ -1,5 +1,7 @@
 package com.collabspace.feature.comment;
 
+import com.collabspace.feature.activity.ActivityService;
+import com.collabspace.feature.activity.ActivityType;
 import com.collabspace.feature.comment.dto.CommentResponse;
 import com.collabspace.feature.comment.dto.CreateCommentRequest;
 import com.collabspace.feature.project.ProjectMemberService;
@@ -20,13 +22,15 @@ public class CommentService {
 	private final TaskRepository taskRepository;
 	private final UserRepository userRepository;
 	private final ProjectMemberService projectMemberService;
+	private final ActivityService activityService;
 
 	public CommentService(CommentRepository commentRepository, TaskRepository taskRepository, UserRepository userRepository,
-			ProjectMemberService projectMemberService) {
+			ProjectMemberService projectMemberService, ActivityService activityService) {
 		this.commentRepository = commentRepository;
 		this.taskRepository = taskRepository;
 		this.userRepository = userRepository;
 		this.projectMemberService = projectMemberService;
+		this.activityService = activityService;
 	}
 
 	public List<CommentResponse> getTaskComments(String email, Long taskId) {
@@ -54,7 +58,11 @@ public class CommentService {
 		comment.setCreatedAt(now);
 		comment.setUpdatedAt(now);
 
-		return mapToResponse(commentRepository.save(comment));
+		Comment savedComment = commentRepository.save(comment);
+		activityService.createActivity(task, author, ActivityType.COMMENT_CREATED,
+				author.getUsername() + " added a comment");
+
+		return mapToResponse(savedComment);
 	}
 
 	@Transactional
