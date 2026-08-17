@@ -1,4 +1,5 @@
 import client from '../../../api/client'
+import type { Activity } from '../../activity/types/Activity'
 import type { Comment } from '../../comment/types/Comment'
 import type { Project, ProjectStatus } from '../../project/types/Project'
 import type { ProjectMember } from '../../project/types/ProjectMember'
@@ -132,6 +133,11 @@ export const createTaskComment = async (
 
 export const deleteComment = async (commentId: number): Promise<void> => {
 	await client.delete(`/comments/${commentId}`)
+}
+
+export const getTaskActivity = async (taskId: number): Promise<Activity[]> => {
+	const response = await client.get<Activity[]>(`/tasks/${taskId}/activity`)
+	return response.data
 }
 
 export const getWorkspaceMembers = async (workspaceId: number): Promise<WorkspaceMember[]> => {

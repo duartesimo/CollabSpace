@@ -8,10 +8,13 @@ import {
 	deleteTask,
 	getProjectMembers,
 	getTask,
+	getTaskActivity,
 	getTaskComments,
 	unassignTask,
 	updateTask
 } from '../features/workspace/api/workspace'
+import ActivityItem from '../features/activity/components/ActivityItem'
+import type { Activity } from '../features/activity/types/Activity'
 import CommentCard from '../features/comment/components/CommentCard'
 import type { Comment } from '../features/comment/types/Comment'
 import type { Task, TaskStatus } from '../features/task/types/Task'
@@ -64,9 +67,13 @@ export default function TaskDetail() {
 	const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null)
 	const [commentDeleteError, setCommentDeleteError] = useState<string | null>(null)
 	const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+	const [activities, setActivities] = useState<Activity[]>([])
+	const [activitiesLoading, setActivitiesLoading] = useState(false)
+	const [activitiesError, setActivitiesError] = useState<string | null>(null)
 
 	const taskProjectId = task?.projectId
 	const taskCommentId = task?.id
+	const taskActivityId = task?.id
 
 	useEffect(() => {
 		let isMounted = true
@@ -199,6 +206,41 @@ export default function TaskDetail() {
 			isMounted = false
 		}
 	}, [taskCommentId])
+
+	useEffect(() => {
+		if (taskActivityId === undefined) {
+			setActivities([])
+			return
+		}
+
+		let isMounted = true
+
+		const fetchActivity = async () => {
+			setActivitiesLoading(true)
+			setActivitiesError(null)
+
+			try {
+				const data = await getTaskActivity(taskActivityId)
+				if (isMounted) {
+					setActivities(data)
+				}
+			} catch {
+				if (isMounted) {
+					setActivitiesError('Unable to load task activity right now.')
+				}
+			} finally {
+				if (isMounted) {
+					setActivitiesLoading(false)
+				}
+			}
+		}
+
+		void fetchActivity()
+
+		return () => {
+			isMounted = false
+		}
+	}, [taskActivityId])
 
 	const handleUpdateTask = async (event: React.FormEvent) => {
 		event.preventDefault()
@@ -538,6 +580,37 @@ export default function TaskDetail() {
 												onDelete={currentUserId === comment.author.id ? () => void handleDeleteComment(comment.id) : undefined}
 												isDeleting={deletingCommentId === comment.id}
 											/>
+										))}
+									</div>
+								)}
+							</div>
+
+							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+								<h2 className="text-lg font-semibold text-white">Activity</h2>
+								<p className="mt-2 text-sm text-slate-400">
+									Recent changes and updates for this task.
+								</p>
+
+								{activitiesLoading && (
+									<div className="mt-6 text-sm text-slate-400">Loading activity...</div>
+								)}
+
+								{activitiesError && !activitiesLoading && (
+									<div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{activitiesError}
+									</div>
+								)}
+
+								{!activitiesLoading && !activitiesError && activities.length === 0 && (
+									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
+										No activity yet.
+									</div>
+								)}
+
+								{!activitiesLoading && !activitiesError && activities.length > 0 && (
+									<div className="mt-6 space-y-3">
+										{activities.map((activity) => (
+											<ActivityItem key={activity.id} activity={activity} />
 										))}
 									</div>
 								)}
