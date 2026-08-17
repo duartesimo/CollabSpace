@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import client from '../api/client'
 import {
@@ -207,6 +207,25 @@ export default function TaskDetail() {
 		}
 	}, [taskCommentId])
 
+	const refreshActivity = useCallback(async () => {
+		if (taskActivityId === undefined) {
+			setActivities([])
+			return
+		}
+
+		setActivitiesLoading(true)
+		setActivitiesError(null)
+
+		try {
+			const data = await getTaskActivity(taskActivityId)
+			setActivities(data)
+		} catch {
+			setActivitiesError('Unable to load task activity right now.')
+		} finally {
+			setActivitiesLoading(false)
+		}
+	}, [taskActivityId])
+
 	useEffect(() => {
 		if (taskActivityId === undefined) {
 			setActivities([])
@@ -262,6 +281,7 @@ export default function TaskDetail() {
 			setTaskTitle(updatedTask.title)
 			setTaskDescription(updatedTask.description || '')
 			setTaskStatus(updatedTask.status)
+			await refreshActivity()
 		} catch (err) {
 			const apiMessage = (err as any)?.response?.data?.message
 			setTaskSaveError(apiMessage || 'Unable to update this task right now.')
@@ -306,6 +326,7 @@ export default function TaskDetail() {
 			const updatedTask = await assignTask(taskId, Number(selectedAssigneeId))
 			setTask(updatedTask)
 			setSelectedAssigneeId('')
+			await refreshActivity()
 		} catch (err) {
 			const apiMessage = (err as any)?.response?.data?.message
 			setAssignmentError(apiMessage || 'Unable to assign this task right now.')
@@ -325,6 +346,7 @@ export default function TaskDetail() {
 		try {
 			const updatedTask = await unassignTask(taskId)
 			setTask(updatedTask)
+			await refreshActivity()
 		} catch (err) {
 			const apiMessage = (err as any)?.response?.data?.message
 			setAssignmentError(apiMessage || 'Unable to unassign this task right now.')
@@ -347,6 +369,7 @@ export default function TaskDetail() {
 			const createdComment = await createTaskComment(taskCommentId, { content: commentText.trim() })
 			setComments((currentComments) => [...currentComments, createdComment])
 			setCommentText('')
+			await refreshActivity()
 		} catch (err) {
 			const apiMessage = (err as any)?.response?.data?.message
 			setCommentSubmitError(apiMessage || 'Unable to create this comment right now.')
