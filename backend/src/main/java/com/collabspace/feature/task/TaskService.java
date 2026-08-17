@@ -1,5 +1,7 @@
 package com.collabspace.feature.task;
 
+import com.collabspace.feature.activity.ActivityService;
+import com.collabspace.feature.activity.ActivityType;
 import com.collabspace.feature.project.Project;
 import com.collabspace.feature.project.ProjectMemberService;
 import com.collabspace.feature.task.dto.TaskAssigneeResponse;
@@ -20,12 +22,14 @@ public class TaskService {
 	private final TaskRepository taskRepository;
 	private final UserRepository userRepository;
 	private final ProjectMemberService projectMemberService;
+	private final ActivityService activityService;
 
 	public TaskService(TaskRepository taskRepository, UserRepository userRepository,
-			ProjectMemberService projectMemberService) {
+			ProjectMemberService projectMemberService, ActivityService activityService) {
 		this.taskRepository = taskRepository;
 		this.userRepository = userRepository;
 		this.projectMemberService = projectMemberService;
+		this.activityService = activityService;
 	}
 
 	public List<TaskResponse> getProjectTasks(String email, Long projectId) {
@@ -49,12 +53,23 @@ public class TaskService {
 				.orElseThrow(() -> new IllegalArgumentException("Task not found"));
 
 		projectMemberService.getProjectForMember(email, task.getProject().getId());
+		User currentUser = getUser(email);
+		TaskStatus previousStatus = task.getStatus();
 		task.setTitle(request.getTitle());
 		task.setDescription(request.getDescription());
 		task.setStatus(request.getStatus());
 		task.setUpdatedAt(LocalDateTime.now());
 
-		return mapToResponse(taskRepository.save(task));
+		Task updatedTask = taskRepository.save(task);
+		if (previousStatus != request.getStatus()) {
+			activityService.createActivity(updatedTask, currentUser, ActivityType.TASK_STATUS_CHANGED,
+					currentUser.getUsername() + " changed status from " + previousStatus + " to " + request.getStatus());
+		} else {
+			activityService.createActivity(updatedTask, currentUser, ActivityType.TASK_UPDATED,
+					currentUser.getUsername() + " updated this task");
+		}
+
+		return mapToResponse(updatedTask);
 	}
 
 	@Transactional
@@ -77,10 +92,15 @@ public class TaskService {
 				.orElseThrow(() -> new IllegalArgumentException("User not found"));
 
 		projectMemberService.verifyProjectMember(task.getProject(), assignee);
+		User currentUser = getUser(email);
 		task.setAssignee(assignee);
 		task.setUpdatedAt(LocalDateTime.now());
 
-		return mapToResponse(taskRepository.save(task));
+		Task updatedTask = taskRepository.save(task);
+		activityService.createActivity(updatedTask, currentUser, ActivityType.TASK_ASSIGNED,
+				currentUser.getUsername() + " assigned this task to " + assignee.getUsername());
+
+		return mapToResponse(updatedTask);
 	}
 
 	@Transactional
@@ -89,15 +109,26 @@ public class TaskService {
 				.orElseThrow(() -> new IllegalArgumentException("Task not found"));
 
 		projectMemberService.getProjectForMember(email, task.getProject().getId());
+		User previousAssignee = task.getAssignee();
+		if (previousAssignee == null) {
+			return mapToResponse(task);
+		}
+
+		User currentUser = getUser(email);
 		task.setAssignee(null);
 		task.setUpdatedAt(LocalDateTime.now());
 
-		return mapToResponse(taskRepository.save(task));
+		Task updatedTask = taskRepository.save(task);
+		activityService.createActivity(updatedTask, currentUser, ActivityType.TASK_UNASSIGNED,
+				currentUser.getUsername() + " removed " + previousAssignee.getUsername() + " from this task");
+
+		return mapToResponse(updatedTask);
 	}
 
 	@Transactional
 	public TaskResponse createTask(String email, Long projectId, CreateTaskRequest request) {
 		Project project = projectMemberService.getProjectForMember(email, projectId);
+		User currentUser = getUser(email);
 		LocalDateTime now = LocalDateTime.now();
 
 		Task task = new Task();
@@ -108,7 +139,16 @@ public class TaskService {
 		task.setCreatedAt(now);
 		task.setUpdatedAt(now);
 
-		return mapToResponse(taskRepository.save(task));
+		Task savedTask = taskRepository.save(task);
+		activityService.createActivity(savedTask, currentUser, ActivityType.TASK_CREATED,
+				currentUser.getUsername() + " created this task");
+
+		return mapToResponse(savedTask);
+	}
+
+	private User getUser(String email) {
+		return userRepository.findByEmail(email)
+				.orElseThrow(() -> new IllegalArgumentException("User not found"));
 	}
 
 	private TaskResponse mapToResponse(Task task) {
