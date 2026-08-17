@@ -1,15 +1,25 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import client from '../api/client'
 import {
 	assignTask,
+	createTaskComment,
+	deleteComment,
 	deleteTask,
 	getProjectMembers,
 	getTask,
+	getTaskComments,
 	unassignTask,
 	updateTask
 } from '../features/workspace/api/workspace'
+import CommentCard from '../features/comment/components/CommentCard'
+import type { Comment } from '../features/comment/types/Comment'
 import type { Task, TaskStatus } from '../features/task/types/Task'
 import type { ProjectMember } from '../features/project/types/ProjectMember'
+
+interface CurrentUserResponse {
+	id: number
+}
 
 export default function TaskDetail() {
 	const { id } = useParams<{ id: string }>()
@@ -45,8 +55,41 @@ export default function TaskDetail() {
 	const [assigningTask, setAssigningTask] = useState(false)
 	const [assignmentError, setAssignmentError] = useState<string | null>(null)
 	const [unassigningTask, setUnassigningTask] = useState(false)
+	const [comments, setComments] = useState<Comment[]>([])
+	const [commentsLoading, setCommentsLoading] = useState(false)
+	const [commentsError, setCommentsError] = useState<string | null>(null)
+	const [commentText, setCommentText] = useState('')
+	const [submittingComment, setSubmittingComment] = useState(false)
+	const [commentSubmitError, setCommentSubmitError] = useState<string | null>(null)
+	const [deletingCommentId, setDeletingCommentId] = useState<number | null>(null)
+	const [commentDeleteError, setCommentDeleteError] = useState<string | null>(null)
+	const [currentUserId, setCurrentUserId] = useState<number | null>(null)
 
 	const taskProjectId = task?.projectId
+	const taskCommentId = task?.id
+
+	useEffect(() => {
+		let isMounted = true
+
+		const fetchCurrentUser = async () => {
+			try {
+				const response = await client.get<CurrentUserResponse>('/users/me')
+				if (isMounted) {
+					setCurrentUserId(response.data.id)
+				}
+			} catch {
+				if (isMounted) {
+					setCurrentUserId(null)
+				}
+			}
+		}
+
+		void fetchCurrentUser()
+
+		return () => {
+			isMounted = false
+		}
+	}, [])
 
 	useEffect(() => {
 		if (taskId === null) {
@@ -121,6 +164,41 @@ export default function TaskDetail() {
 			isMounted = false
 		}
 	}, [taskProjectId])
+
+	useEffect(() => {
+		if (taskCommentId === undefined) {
+			setComments([])
+			return
+		}
+
+		let isMounted = true
+
+		const fetchComments = async () => {
+			setCommentsLoading(true)
+			setCommentsError(null)
+
+			try {
+				const data = await getTaskComments(taskCommentId)
+				if (isMounted) {
+					setComments(data)
+				}
+			} catch {
+				if (isMounted) {
+					setCommentsError('Unable to load task comments right now.')
+				}
+			} finally {
+				if (isMounted) {
+					setCommentsLoading(false)
+				}
+			}
+		}
+
+		void fetchComments()
+
+		return () => {
+			isMounted = false
+		}
+	}, [taskCommentId])
 
 	const handleUpdateTask = async (event: React.FormEvent) => {
 		event.preventDefault()
@@ -210,6 +288,47 @@ export default function TaskDetail() {
 			setAssignmentError(apiMessage || 'Unable to unassign this task right now.')
 		} finally {
 			setUnassigningTask(false)
+		}
+	}
+
+	const handleCreateComment = async (event: React.FormEvent) => {
+		event.preventDefault()
+		if (taskCommentId === undefined || !commentText.trim()) {
+			setCommentSubmitError('Comment content is required.')
+			return
+		}
+
+		setSubmittingComment(true)
+		setCommentSubmitError(null)
+
+		try {
+			const createdComment = await createTaskComment(taskCommentId, { content: commentText.trim() })
+			setComments((currentComments) => [...currentComments, createdComment])
+			setCommentText('')
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setCommentSubmitError(apiMessage || 'Unable to create this comment right now.')
+		} finally {
+			setSubmittingComment(false)
+		}
+	}
+
+	const handleDeleteComment = async (commentId: number) => {
+		if (!window.confirm('Delete this comment? This action cannot be undone.')) {
+			return
+		}
+
+		setDeletingCommentId(commentId)
+		setCommentDeleteError(null)
+
+		try {
+			await deleteComment(commentId)
+			setComments((currentComments) => currentComments.filter((comment) => comment.id !== commentId))
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setCommentDeleteError(apiMessage || 'Unable to delete this comment right now.')
+		} finally {
+			setDeletingCommentId(null)
 		}
 	}
 
@@ -352,6 +471,74 @@ export default function TaskDetail() {
 								{assignmentError && (
 									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
 										{assignmentError}
+									</div>
+								)}
+							</div>
+
+							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+								<h2 className="text-lg font-semibold text-white">Comments</h2>
+								<p className="mt-2 text-sm text-slate-400">
+									Discuss this task with project members.
+								</p>
+
+								<form className="mt-6 space-y-3" onSubmit={handleCreateComment}>
+									<textarea
+										id="comment-content"
+										value={commentText}
+										onChange={(event) => setCommentText(event.target.value)}
+										placeholder="Write a comment"
+										maxLength={1000}
+										rows={4}
+										className="w-full rounded-2xl border border-slate-700 bg-slate-900/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-indigo-400"
+									/>
+
+									{commentSubmitError && (
+										<div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+											{commentSubmitError}
+										</div>
+									)}
+
+									<button
+										type="submit"
+										disabled={submittingComment}
+										className="rounded-2xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+									>
+										{submittingComment ? 'Adding...' : 'Add comment'}
+									</button>
+								</form>
+
+								{commentsLoading && (
+									<div className="mt-6 text-sm text-slate-400">Loading comments...</div>
+								)}
+
+								{commentsError && !commentsLoading && (
+									<div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{commentsError}
+									</div>
+								)}
+
+								{commentDeleteError && (
+									<div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{commentDeleteError}
+									</div>
+								)}
+
+								{!commentsLoading && !commentsError && comments.length === 0 && (
+									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
+										No comments yet.
+									</div>
+								)}
+
+								{!commentsLoading && !commentsError && comments.length > 0 && (
+									<div className="mt-6 space-y-3">
+										{comments.map((comment) => (
+											<CommentCard
+												key={comment.id}
+												comment={comment}
+												onDelete={currentUserId === comment.author.id ? () => void handleDeleteComment(comment.id) : undefined}
+												isDeleting={deletingCommentId === comment.id}
+											/>
+										))}
 									</div>
 								)}
 							</div>
