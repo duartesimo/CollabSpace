@@ -6,6 +6,7 @@ import Breadcrumbs from '../components/navigation/Breadcrumbs'
 import Card from '../components/ui/Card'
 import CollapsiblePanel from '../components/ui/CollapsiblePanel'
 import EmptyState from '../components/ui/EmptyState'
+import LoadingState from '../components/ui/LoadingState'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatusBadge from '../components/ui/StatusBadge'
 import {
@@ -299,7 +300,7 @@ export default function WorkspaceDetail() {
 
 				<div className="mt-6">
 					{loading && (
-						<div className="py-16 text-center text-slate-400">Loading workspace...</div>
+						<LoadingState label="Loading workspace" variant="page" />
 					)}
 
 					{error && !loading && (
@@ -365,7 +366,7 @@ export default function WorkspaceDetail() {
 								/>
 
 								{projectsLoading && (
-									<div className="mt-6 text-sm text-slate-400">Loading projects...</div>
+									<LoadingState className="mt-6" label="Loading projects" variant="cards" />
 								)}
 
 								{projectsError && !projectsLoading && (
@@ -375,19 +376,24 @@ export default function WorkspaceDetail() {
 								)}
 
 								{!projectsLoading && !projectsError && projects.length === 0 && (
-									<EmptyState className="mt-6" title="No projects yet" description="Create a project to start organizing work in this workspace." />
+									<EmptyState
+										className="mt-6"
+										icon="P"
+										title="No projects yet"
+										description={isCurrentUserOwner ? 'Use the form above to create the first project in this workspace.' : 'The workspace owner has not created a project yet.'}
+									/>
 								)}
 
 								{!projectsLoading && !projectsError && projects.length > 0 && (
-									<div className="mt-6 grid gap-3 md:grid-cols-2">
+									<div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
 										{projects.map((project) => (
 											<Link
 												key={project.id}
 												to={`/projects/${project.id}`}
-												className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 transition hover:border-slate-600 hover:bg-slate-900/70"
+												className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 outline-none transition hover:-translate-y-0.5 hover:border-slate-600 hover:bg-slate-900/70 focus-visible:border-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-400/30"
 											>
 												<h3 className="font-medium text-white">{project.name}</h3>
-												<p className="mt-2 text-sm leading-6 text-slate-400">
+												<p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-400">
 													{project.description || 'No description provided for this project yet.'}
 												</p>
 												<p className="mt-4 text-xs text-slate-500">
@@ -485,7 +491,7 @@ export default function WorkspaceDetail() {
 								)}
 
 								{membersLoading && (
-									<div className="mt-6 text-sm text-slate-400">Loading members...</div>
+									<LoadingState className="mt-6" label="Loading workspace members" variant="list" count={2} />
 								)}
 
 								{membersError && !membersLoading && (
@@ -495,7 +501,7 @@ export default function WorkspaceDetail() {
 								)}
 
 								{!membersLoading && !membersError && members.length === 0 && (
-									<EmptyState className="mt-6" title="No members yet" description="Add the first workspace member above." />
+									<EmptyState className="mt-6" icon="M" title="No members yet" description="Add the first workspace member using the form above." />
 								)}
 
 								{!membersLoading && !membersError && members.length > 0 && (

@@ -6,6 +6,7 @@ import Breadcrumbs from '../components/navigation/Breadcrumbs'
 import Card from '../components/ui/Card'
 import CollapsiblePanel from '../components/ui/CollapsiblePanel'
 import EmptyState from '../components/ui/EmptyState'
+import LoadingState from '../components/ui/LoadingState'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatusBadge from '../components/ui/StatusBadge'
 import {
@@ -486,7 +487,7 @@ export default function TaskDetail() {
 
 				<div className="mt-6">
 					{loading && (
-						<div className="py-16 text-center text-slate-400">Loading task...</div>
+						<LoadingState label="Loading task" variant="page" />
 					)}
 
 					{error && !loading && (
@@ -501,7 +502,10 @@ export default function TaskDetail() {
 								eyebrow="Task"
 								title={task.title}
 							>
-								<StatusBadge className="py-1.5">
+								<StatusBadge
+									className="py-1.5"
+									tone={task.status === 'DONE' ? 'emerald' : task.status === 'IN_PROGRESS' ? 'amber' : 'slate'}
+								>
 									{task.status}
 								</StatusBadge>
 								<Link
@@ -574,7 +578,7 @@ export default function TaskDetail() {
 								</div>
 
 								{projectMembersLoading && (
-									<div className="mt-4 text-sm text-slate-400">Loading project members...</div>
+									<LoadingState className="mt-4" label="Loading project members" variant="list" count={2} />
 								)}
 
 								{projectMembersError && !projectMembersLoading && (
@@ -645,7 +649,7 @@ export default function TaskDetail() {
 								</form>
 
 								{commentsLoading && (
-									<div className="mt-6 text-sm text-slate-400">Loading comments...</div>
+									<LoadingState className="mt-6" label="Loading comments" variant="list" count={2} />
 								)}
 
 								{commentsError && !commentsLoading && (
@@ -661,7 +665,7 @@ export default function TaskDetail() {
 								)}
 
 								{!commentsLoading && !commentsError && comments.length === 0 && (
-									<EmptyState className="mt-6" title="No comments yet" description="Start the conversation by adding the first comment." />
+									<EmptyState className="mt-6" icon="C" title="No comments yet" description="Share context, ask a question, or post the first update using the form above." />
 								)}
 
 								{!commentsLoading && !commentsError && comments.length > 0 && (
@@ -682,7 +686,7 @@ export default function TaskDetail() {
 								<SectionHeader title="Activity" description="Recent changes and updates for this task." />
 
 								{activitiesLoading && (
-									<div className="mt-6 text-sm text-slate-400">Loading activity...</div>
+									<LoadingState className="mt-6" label="Loading task activity" variant="list" count={3} />
 								)}
 
 								{activitiesError && !activitiesLoading && (
@@ -692,7 +696,7 @@ export default function TaskDetail() {
 								)}
 
 								{!activitiesLoading && !activitiesError && activities.length === 0 && (
-									<EmptyState className="mt-6" title="No activity yet" description="Task changes will appear here as they happen." />
+									<EmptyState className="mt-6" icon="A" title="No activity yet" description="Updates, status changes, assignments, and comments will appear here." />
 								)}
 
 								{!activitiesLoading && !activitiesError && activities.length > 0 && (

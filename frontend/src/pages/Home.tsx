@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import EntityHeader from '../components/layout/EntityHeader'
+import EmptyState from '../components/ui/EmptyState'
+import LoadingState from '../components/ui/LoadingState'
 import WorkspaceCard from '../components/workspace/WorkspaceCard'
 import useAuth from '../hooks/useAuth'
 import { getWorkspaces } from '../features/workspace/api/workspace'
@@ -107,9 +109,7 @@ export default function Home() {
 					</div>
 
 					{loading && (
-						<div className="rounded-3xl border border-slate-800 bg-slate-900/40 py-16 text-center text-slate-400">
-							Loading your workspaces...
-						</div>
+						<LoadingState label="Loading your workspaces" variant="cards" />
 					)}
 
 					{error && (
@@ -119,26 +119,20 @@ export default function Home() {
 					)}
 
 					{!loading && !error && workspaces.length === 0 && (
-						<div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-700 bg-slate-900/30 px-6 py-16 text-center sm:py-20">
-							<div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-indigo-400/20 bg-indigo-500/15 text-xl font-semibold text-indigo-300">
-								+
-							</div>
-
-							<h3 className="mt-5 text-xl font-semibold text-white">
-								Create your first workspace
-							</h3>
-
-							<p className="mt-2 max-w-sm text-sm leading-6 text-slate-400">
-								Start organizing your projects and collaboration spaces in one place.
-							</p>
-
-							<Link
-								to="/workspaces/new"
-								className="mt-6 inline-flex items-center justify-center rounded-full bg-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400"
-							>
-								Create workspace
-							</Link>
-						</div>
+						<EmptyState
+							className="py-16 sm:py-20"
+							icon="+"
+							title="Create your first workspace"
+							description="Bring projects, tasks, and team collaboration together in one focused space."
+							action={(
+								<Link
+									to="/workspaces/new"
+									className="inline-flex items-center justify-center rounded-full bg-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+								>
+									Create workspace
+								</Link>
+							)}
+						/>
 					)}
 
 					{!loading && !error && workspaces.length > 0 && (

@@ -6,6 +6,7 @@ import Breadcrumbs from '../components/navigation/Breadcrumbs'
 import Card from '../components/ui/Card'
 import CollapsiblePanel from '../components/ui/CollapsiblePanel'
 import EmptyState from '../components/ui/EmptyState'
+import LoadingState from '../components/ui/LoadingState'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatusBadge from '../components/ui/StatusBadge'
 import {
@@ -431,7 +432,7 @@ export default function ProjectDetail() {
 
 				<div className="mt-6">
 					{loading && (
-						<div className="py-16 text-center text-slate-400">Loading project...</div>
+						<LoadingState label="Loading project" variant="page" />
 					)}
 
 					{error && !loading && (
@@ -448,7 +449,10 @@ export default function ProjectDetail() {
 									title={project.name}
 									description={project.description || 'No description provided for this project yet.'}
 								>
-									<StatusBadge className="py-1.5">
+									<StatusBadge
+										className="py-1.5"
+										tone={project.status === 'COMPLETED' ? 'emerald' : project.status === 'ARCHIVED' ? 'slate' : 'indigo'}
+									>
 										{project.status}
 									</StatusBadge>
 									<Link
@@ -500,7 +504,7 @@ export default function ProjectDetail() {
 								)}
 
 								{projectMembersLoading && (
-									<div className="mt-6 text-sm text-slate-400">Loading members...</div>
+									<LoadingState className="mt-6" label="Loading project members" variant="list" count={2} />
 								)}
 
 								{projectMembersError && !projectMembersLoading && (
@@ -510,7 +514,7 @@ export default function ProjectDetail() {
 								)}
 
 								{!projectMembersLoading && !projectMembersError && projectMembers.length === 0 && (
-									<EmptyState className="mt-6" title="No project members yet" description="Add a workspace member to this project above." />
+									<EmptyState className="mt-6" icon="M" title="No project members yet" description="Add a workspace member to this project using the form above." />
 								)}
 
 								{!projectMembersLoading && !projectMembersError && projectMembers.length > 0 && (
@@ -588,7 +592,7 @@ export default function ProjectDetail() {
 								/>
 
 								{tasksLoading && (
-									<div className="mt-6 text-sm text-slate-400">Loading tasks...</div>
+									<LoadingState className="mt-6" label="Loading project tasks" variant="cards" />
 								)}
 
 								{tasksError && !tasksLoading && (
@@ -604,7 +608,7 @@ export default function ProjectDetail() {
 								)}
 
 								{!tasksLoading && !tasksError && tasks.length === 0 && (
-									<EmptyState className="mt-6" title="No tasks yet" description="Create the first task for this project above." />
+									<EmptyState className="mt-6" icon="T" title="No tasks yet" description="Use the form above to create the first task and start tracking progress." />
 								)}
 
 								{!tasksLoading && !tasksError && tasks.length > 0 && (
@@ -616,7 +620,7 @@ export default function ProjectDetail() {
 												<div key={status} className="rounded-3xl border border-slate-800 bg-slate-900/40 p-4">
 													<div className="flex items-center justify-between gap-3">
 														<h3 className="font-semibold text-white">{status}</h3>
-														<StatusBadge>
+														<StatusBadge tone={status === 'DONE' ? 'emerald' : status === 'IN_PROGRESS' ? 'amber' : 'slate'}>
 															{columnTasks.length}
 														</StatusBadge>
 													</div>
@@ -644,7 +648,7 @@ export default function ProjectDetail() {
 														</div>
 													))
 												) : (
-															<EmptyState title={`No ${status.toLowerCase().replace('_', ' ')} tasks`} />
+													<EmptyState compact title={`No ${status.toLowerCase().replace('_', ' ')} tasks`} />
 														)}
 													</div>
 												</div>
