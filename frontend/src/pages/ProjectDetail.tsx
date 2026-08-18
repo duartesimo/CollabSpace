@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import client from '../api/client'
+import EntityHeader from '../components/layout/EntityHeader'
+import Breadcrumbs from '../components/navigation/Breadcrumbs'
 import {
 	addProjectMember,
 	createProjectTask,
@@ -8,6 +10,7 @@ import {
 	getProject,
 	getProjectMembers,
 	getProjectTasks,
+	getWorkspace,
 	getWorkspaceMembers,
 	removeProjectMember,
 	updateProject
@@ -16,6 +19,7 @@ import type { Project, ProjectStatus } from '../features/project/types/Project'
 import type { ProjectMember } from '../features/project/types/ProjectMember'
 import TaskCard from '../features/task/components/TaskCard'
 import type { Task } from '../features/task/types/Task'
+import type { Workspace } from '../features/workspace/types/Workspace'
 import type { WorkspaceMember } from '../features/workspace/types/WorkspaceMember'
 
 interface CurrentUserResponse {
@@ -43,6 +47,7 @@ export default function ProjectDetail() {
 	}, [id])
 
 	const [project, setProject] = useState<Project | null>(null)
+	const [workspaceContext, setWorkspaceContext] = useState<Workspace | null>(null)
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [projectName, setProjectName] = useState('')
@@ -121,6 +126,34 @@ export default function ProjectDetail() {
 			isMounted = false
 		}
 	}, [projectId])
+
+	useEffect(() => {
+		if (project === null) {
+			setWorkspaceContext(null)
+			return
+		}
+
+		let isMounted = true
+
+		const fetchWorkspaceContext = async () => {
+			try {
+				const data = await getWorkspace(project.workspaceId)
+				if (isMounted) {
+					setWorkspaceContext(data)
+				}
+			} catch {
+				if (isMounted) {
+					setWorkspaceContext(null)
+				}
+			}
+		}
+
+		void fetchWorkspaceContext()
+
+		return () => {
+			isMounted = false
+		}
+	}, [project?.workspaceId])
 
 	useEffect(() => {
 		if (project === null) {
@@ -349,22 +382,21 @@ export default function ProjectDetail() {
 		}
 	}
 
-	const backTo = project ? `/workspaces/${project.workspaceId}` : '/'
-	const backLabel = project ? '← Back to workspace' : '← Back to dashboard'
-
 	return (
-		<div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
-			<div className="mx-auto max-w-5xl">
-				<div className="mb-8 flex items-center justify-between">
-					<Link
-						to={backTo}
-						className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900/80 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
-					>
-						{backLabel}
-					</Link>
-				</div>
+		<div className="text-slate-100">
+			<div className="mx-auto max-w-7xl">
+				<Breadcrumbs
+					items={[
+						{ label: 'CollabSpace', href: '/' },
+						{
+							label: workspaceContext?.name || (project ? `Workspace #${project.workspaceId}` : 'Workspace'),
+							href: project ? `/workspaces/${project.workspaceId}` : undefined
+						},
+						{ label: project?.name || 'Project' }
+					]}
+				/>
 
-				<div className="rounded-[2rem] border border-slate-800 bg-slate-900/60 p-8 shadow-2xl shadow-black/20 backdrop-blur">
+				<div className="mt-6">
 					{loading && (
 						<div className="py-16 text-center text-slate-400">Loading project...</div>
 					)}
@@ -376,48 +408,29 @@ export default function ProjectDetail() {
 					)}
 
 					{!loading && !error && project && (
-						<div className="space-y-8">
-							<div>
-								<p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-300">
-									Project overview
-								</p>
-								<h1 className="mt-3 text-4xl font-semibold tracking-tight text-white">{project.name}</h1>
+						<div className="grid gap-8 lg:grid-cols-2">
+							<div className="lg:col-span-2">
+								<EntityHeader
+									eyebrow="Project"
+									title={project.name}
+									description={project.description || 'No description provided for this project yet.'}
+								>
+									<span className="rounded-full bg-indigo-500/15 px-3 py-1.5 text-xs font-semibold text-indigo-300">
+										{project.status}
+									</span>
+									<Link
+										to={`/workspaces/${project.workspaceId}`}
+										className="rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
+									>
+										{workspaceContext?.name || `Workspace #${project.workspaceId}`}
+									</Link>
+									<span className="text-xs text-slate-500">
+										Updated {new Date(project.updatedAt).toLocaleDateString()}
+									</span>
+								</EntityHeader>
 							</div>
 
-							<div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
-									<h2 className="text-lg font-semibold text-white">Details</h2>
-									<p className="mt-4 leading-7 text-slate-400">
-										{project.description || 'No description provided for this project yet.'}
-									</p>
-								</div>
-
-								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
-									<h2 className="text-lg font-semibold text-white">Project info</h2>
-									<div className="mt-5 space-y-4 text-sm text-slate-400">
-										<div>
-											<p className="text-slate-500">Workspace</p>
-											<Link to={`/workspaces/${project.workspaceId}`} className="mt-1 block font-medium text-indigo-300 hover:text-indigo-200">
-												Workspace #{project.workspaceId}
-											</Link>
-										</div>
-										<div>
-											<p className="text-slate-500">Created</p>
-											<p className="mt-1 font-medium text-slate-200">
-												{new Date(project.createdAt).toLocaleDateString()}
-											</p>
-										</div>
-										<div>
-											<p className="text-slate-500">Updated</p>
-											<p className="mt-1 font-medium text-slate-200">
-												{new Date(project.updatedAt).toLocaleDateString()}
-											</p>
-										</div>
-									</div>
-								</div>
-							</div>
-
-							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+							<div className={`order-3 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 ${isCurrentUserOwner ? '' : 'lg:col-span-2'}`}>
 								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
 									<div>
 										<h2 className="text-lg font-semibold text-white">Members</h2>
@@ -511,7 +524,7 @@ export default function ProjectDetail() {
 								)}
 							</div>
 
-							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+							<div className="order-2 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 shadow-xl shadow-black/10 lg:col-span-2">
 								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
 									<div>
 										<h2 className="text-lg font-semibold text-white">Tasks</h2>
@@ -599,7 +612,7 @@ export default function ProjectDetail() {
 							</div>
 
 							{isCurrentUserOwner && (
-								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+								<div className="order-4 rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
 									<h2 className="text-lg font-semibold text-white">Settings</h2>
 									<p className="mt-2 text-sm text-slate-400">
 										Update this project’s details and status.
@@ -669,7 +682,7 @@ export default function ProjectDetail() {
 							)}
 
 							{isCurrentUserOwner && (
-								<div className="rounded-3xl border border-red-500/30 bg-red-500/5 p-6">
+								<div className="order-5 rounded-3xl border border-red-500/30 bg-red-500/5 p-6 lg:col-start-2">
 									<h2 className="text-lg font-semibold text-red-200">Danger zone</h2>
 									<p className="mt-2 text-sm text-slate-400">
 										Permanently delete this project.

@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import client from '../api/client'
+import EntityHeader from '../components/layout/EntityHeader'
+import Breadcrumbs from '../components/navigation/Breadcrumbs'
 import {
 	addWorkspaceMember,
 	createWorkspaceProject,
@@ -281,18 +283,16 @@ export default function WorkspaceDetail() {
 	}
 
 	return (
-		<div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
-			<div className="mx-auto max-w-5xl">
-				<div className="mb-8 flex items-center justify-between">
-					<Link
-						to="/"
-						className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900/80 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
-					>
-						← Back to dashboard
-					</Link>
-				</div>
+		<div className="text-slate-100">
+			<div className="mx-auto max-w-6xl">
+				<Breadcrumbs
+					items={[
+						{ label: 'CollabSpace', href: '/' },
+						{ label: workspace?.name || 'Workspace' }
+					]}
+				/>
 
-				<div className="rounded-[2rem] border border-slate-800 bg-slate-900/60 p-8 shadow-2xl shadow-black/20 backdrop-blur">
+				<div className="mt-6">
 					{loading && (
 						<div className="py-16 text-center text-slate-400">Loading workspace...</div>
 					)}
@@ -304,44 +304,23 @@ export default function WorkspaceDetail() {
 					)}
 
 					{!loading && !error && workspace && (
-						<div className="space-y-8">
-							<div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-								<div>
-									<p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-300">
-										Workspace overview
-									</p>
-									<h1 className="mt-3 text-4xl font-semibold tracking-tight text-white">
-										{workspace.name}
-									</h1>
-								</div>
+						<div className="grid gap-8 lg:grid-cols-2">
+							<div className="lg:col-span-2">
+								<EntityHeader
+									eyebrow="Workspace"
+									title={workspace.name}
+									description={workspace.description || 'No description provided for this workspace yet.'}
+								>
+									<span className="rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-slate-300">
+										Owner: {workspace.ownerUsername}
+									</span>
+									<span className="rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-slate-400">
+										Created {new Date(workspace.createdAt).toLocaleDateString()}
+									</span>
+								</EntityHeader>
 							</div>
 
-							<div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
-									<h2 className="text-lg font-semibold text-white">Details</h2>
-									<p className="mt-4 leading-7 text-slate-400">
-										{workspace.description || 'No description provided for this workspace yet.'}
-									</p>
-								</div>
-
-								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
-									<h2 className="text-lg font-semibold text-white">Quick info</h2>
-									<div className="mt-5 space-y-4 text-sm text-slate-400">
-										<div>
-											<p className="text-slate-500">Owner</p>
-											<p className="mt-1 font-medium text-slate-200">{workspace.ownerUsername}</p>
-										</div>
-										<div>
-											<p className="text-slate-500">Created</p>
-											<p className="mt-1 font-medium text-slate-200">
-												{new Date(workspace.createdAt).toLocaleDateString()}
-											</p>
-										</div>
-									</div>
-								</div>
-							</div>
-
-							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+							<div className="order-1 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 shadow-xl shadow-black/10 lg:col-span-2">
 								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
 									<div>
 										<h2 className="text-lg font-semibold text-white">Projects</h2>
@@ -423,7 +402,7 @@ export default function WorkspaceDetail() {
 							</div>
 
 							{isCurrentUserOwner && (
-								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+								<div className="order-3 rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
 									<h2 className="text-lg font-semibold text-white">Settings</h2>
 									<p className="mt-2 text-sm text-slate-400">
 										Update your workspace details.
@@ -476,7 +455,7 @@ export default function WorkspaceDetail() {
 								</div>
 							)}
 
-							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+							<div className={`order-2 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 ${isCurrentUserOwner ? '' : 'lg:col-span-2'}`}>
 								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
 									<div>
 										<h2 className="text-lg font-semibold text-white">Members</h2>
@@ -571,7 +550,7 @@ export default function WorkspaceDetail() {
 							</div>
 
 							{isCurrentUserOwner && (
-								<div className="rounded-3xl border border-red-500/30 bg-red-500/5 p-6">
+								<div className="order-4 rounded-3xl border border-red-500/30 bg-red-500/5 p-6 lg:col-start-2">
 									<h2 className="text-lg font-semibold text-red-200">Danger zone</h2>
 									<p className="mt-2 text-sm text-slate-400">
 										Permanently delete this workspace and all of its memberships.

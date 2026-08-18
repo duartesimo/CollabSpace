@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import client from '../api/client'
+import EntityHeader from '../components/layout/EntityHeader'
+import Breadcrumbs from '../components/navigation/Breadcrumbs'
 import {
 	assignTask,
 	createTaskComment,
 	deleteComment,
 	deleteTask,
+	getProject,
 	getProjectMembers,
 	getTask,
 	getTaskActivity,
 	getTaskComments,
+	getWorkspace,
 	unassignTask,
 	updateTask
 } from '../features/workspace/api/workspace'
@@ -17,8 +21,10 @@ import ActivityItem from '../features/activity/components/ActivityItem'
 import type { Activity } from '../features/activity/types/Activity'
 import CommentCard from '../features/comment/components/CommentCard'
 import type { Comment } from '../features/comment/types/Comment'
+import type { Project } from '../features/project/types/Project'
 import type { Task, TaskStatus } from '../features/task/types/Task'
 import type { ProjectMember } from '../features/project/types/ProjectMember'
+import type { Workspace } from '../features/workspace/types/Workspace'
 
 interface CurrentUserResponse {
 	id: number
@@ -42,6 +48,8 @@ export default function TaskDetail() {
 	}, [id])
 
 	const [task, setTask] = useState<Task | null>(null)
+	const [projectContext, setProjectContext] = useState<Project | null>(null)
+	const [workspaceContext, setWorkspaceContext] = useState<Workspace | null>(null)
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [taskTitle, setTaskTitle] = useState('')
@@ -136,6 +144,62 @@ export default function TaskDetail() {
 			isMounted = false
 		}
 	}, [taskId])
+
+	useEffect(() => {
+		if (taskProjectId === undefined) {
+			setProjectContext(null)
+			return
+		}
+
+		let isMounted = true
+
+		const fetchProjectContext = async () => {
+			try {
+				const data = await getProject(taskProjectId)
+				if (isMounted) {
+					setProjectContext(data)
+				}
+			} catch {
+				if (isMounted) {
+					setProjectContext(null)
+				}
+			}
+		}
+
+		void fetchProjectContext()
+
+		return () => {
+			isMounted = false
+		}
+	}, [taskProjectId])
+
+	useEffect(() => {
+		if (projectContext === null) {
+			setWorkspaceContext(null)
+			return
+		}
+
+		let isMounted = true
+
+		const fetchWorkspaceContext = async () => {
+			try {
+				const data = await getWorkspace(projectContext.workspaceId)
+				if (isMounted) {
+					setWorkspaceContext(data)
+				}
+			} catch {
+				if (isMounted) {
+					setWorkspaceContext(null)
+				}
+			}
+		}
+
+		void fetchWorkspaceContext()
+
+		return () => {
+			isMounted = false
+		}
+	}, [projectContext?.workspaceId])
 
 	useEffect(() => {
 		if (taskProjectId === undefined) {
@@ -397,22 +461,25 @@ export default function TaskDetail() {
 		}
 	}
 
-	const backTo = task ? `/projects/${task.projectId}` : '/'
-	const backLabel = task ? '← Back to project' : '← Back to dashboard'
-
 	return (
-		<div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
-			<div className="mx-auto max-w-5xl">
-				<div className="mb-8 flex items-center justify-between">
-					<Link
-						to={backTo}
-						className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900/80 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
-					>
-						{backLabel}
-					</Link>
-				</div>
+		<div className="text-slate-100">
+			<div className="mx-auto max-w-7xl">
+				<Breadcrumbs
+					items={[
+						{ label: 'CollabSpace', href: '/' },
+						{
+							label: workspaceContext?.name || (projectContext ? `Workspace #${projectContext.workspaceId}` : 'Workspace'),
+							href: projectContext ? `/workspaces/${projectContext.workspaceId}` : undefined
+						},
+						{
+							label: projectContext?.name || (task ? `Project #${task.projectId}` : 'Project'),
+							href: task ? `/projects/${task.projectId}` : undefined
+						},
+						{ label: task?.title || 'Task' }
+					]}
+				/>
 
-				<div className="rounded-[2rem] border border-slate-800 bg-slate-900/60 p-8 shadow-2xl shadow-black/20 backdrop-blur">
+				<div className="mt-6">
 					{loading && (
 						<div className="py-16 text-center text-slate-400">Loading task...</div>
 					)}
@@ -424,34 +491,41 @@ export default function TaskDetail() {
 					)}
 
 					{!loading && !error && task && (
-						<div className="space-y-8">
-							<div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-								<div>
-									<p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-300">
-										Task overview
-									</p>
-									<h1 className="mt-3 text-4xl font-semibold tracking-tight text-white">{task.title}</h1>
-								</div>
-								<span className="w-fit rounded-full bg-indigo-500/15 px-3 py-1 text-xs font-semibold text-indigo-300">
+						<div className="flex flex-col gap-8">
+							<EntityHeader
+								eyebrow="Task"
+								title={task.title}
+							>
+								<span className="rounded-full bg-indigo-500/15 px-3 py-1.5 text-xs font-semibold text-indigo-300">
 									{task.status}
 								</span>
-							</div>
+								<Link
+									to={`/projects/${task.projectId}`}
+									className="rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
+								>
+									{projectContext?.name || `Project #${task.projectId}`}
+								</Link>
+								<span className="text-xs text-slate-400">
+									{task.assignee ? `Assigned to ${task.assignee.username}` : 'Unassigned'}
+								</span>
+							</EntityHeader>
 
-							<div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+							<div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
+								<div className="contents">
+									<div className="order-1 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 lg:col-start-1 lg:row-start-1">
 									<h2 className="text-lg font-semibold text-white">Details</h2>
 									<p className="mt-4 leading-7 text-slate-400">
 										{task.description || 'No description provided for this task yet.'}
 									</p>
 								</div>
 
-								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+									<div className="order-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 lg:col-start-2 lg:row-start-1">
 									<h2 className="text-lg font-semibold text-white">Task info</h2>
 									<div className="mt-5 space-y-4 text-sm text-slate-400">
 										<div>
 											<p className="text-slate-500">Project</p>
 											<Link to={`/projects/${task.projectId}`} className="mt-1 block font-medium text-indigo-300 hover:text-indigo-200">
-												Project #{task.projectId}
+													{projectContext?.name || `Project #${task.projectId}`}
 											</Link>
 										</div>
 										<div>
@@ -467,10 +541,10 @@ export default function TaskDetail() {
 											</p>
 										</div>
 									</div>
-								</div>
+									</div>
 							</div>
 
-							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+							<div className="order-5 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 lg:col-start-2 lg:row-start-2">
 								<h2 className="text-lg font-semibold text-white">Assignment</h2>
 								<p className="mt-2 text-sm text-slate-400">
 									Assign this task to a project member.
@@ -540,7 +614,7 @@ export default function TaskDetail() {
 								)}
 							</div>
 
-							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+							<div className="order-2 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 lg:col-start-1 lg:row-start-2">
 								<h2 className="text-lg font-semibold text-white">Comments</h2>
 								<p className="mt-2 text-sm text-slate-400">
 									Discuss this task with project members.
@@ -608,7 +682,7 @@ export default function TaskDetail() {
 								)}
 							</div>
 
-							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+							<div className="order-3 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 lg:col-start-1 lg:row-start-3">
 								<h2 className="text-lg font-semibold text-white">Activity</h2>
 								<p className="mt-2 text-sm text-slate-400">
 									Recent changes and updates for this task.
@@ -639,7 +713,7 @@ export default function TaskDetail() {
 								)}
 							</div>
 
-							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
+							<div className="order-6 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 lg:col-start-2 lg:row-start-3">
 								<h2 className="text-lg font-semibold text-white">Settings</h2>
 								<p className="mt-2 text-sm text-slate-400">
 									Update this task’s details and status.
@@ -707,7 +781,7 @@ export default function TaskDetail() {
 								</form>
 							</div>
 
-							<div className="rounded-3xl border border-red-500/30 bg-red-500/5 p-6">
+							<div className="order-7 rounded-3xl border border-red-500/30 bg-red-500/5 p-6 lg:col-start-2 lg:row-start-4">
 								<h2 className="text-lg font-semibold text-red-200">Danger zone</h2>
 								<p className="mt-2 text-sm text-slate-400">
 									Permanently delete this task.
@@ -727,6 +801,7 @@ export default function TaskDetail() {
 								>
 									{deletingTask ? 'Deleting...' : 'Delete task'}
 								</button>
+							</div>
 							</div>
 						</div>
 					)}
