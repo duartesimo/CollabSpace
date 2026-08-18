@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import client from '../api/client'
+import EntityHeader from '../components/layout/EntityHeader'
+import Breadcrumbs from '../components/navigation/Breadcrumbs'
+import Card from '../components/ui/Card'
+import CollapsiblePanel from '../components/ui/CollapsiblePanel'
+import EmptyState from '../components/ui/EmptyState'
+import LoadingState from '../components/ui/LoadingState'
+import SectionHeader from '../components/ui/SectionHeader'
+import StatusBadge from '../components/ui/StatusBadge'
 import {
 	addWorkspaceMember,
 	createWorkspaceProject,
@@ -281,20 +289,18 @@ export default function WorkspaceDetail() {
 	}
 
 	return (
-		<div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
-			<div className="mx-auto max-w-5xl">
-				<div className="mb-8 flex items-center justify-between">
-					<Link
-						to="/"
-						className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900/80 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
-					>
-						← Back to dashboard
-					</Link>
-				</div>
+		<div className="text-slate-100">
+			<div className="mx-auto max-w-6xl">
+				<Breadcrumbs
+					items={[
+						{ label: 'CollabSpace', href: '/' },
+						{ label: workspace?.name || 'Workspace' }
+					]}
+				/>
 
-				<div className="rounded-[2rem] border border-slate-800 bg-slate-900/60 p-8 shadow-2xl shadow-black/20 backdrop-blur">
+				<div className="mt-6">
 					{loading && (
-						<div className="py-16 text-center text-slate-400">Loading workspace...</div>
+						<LoadingState label="Loading workspace" variant="page" />
 					)}
 
 					{error && !loading && (
@@ -304,53 +310,27 @@ export default function WorkspaceDetail() {
 					)}
 
 					{!loading && !error && workspace && (
-						<div className="space-y-8">
-							<div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-								<div>
-									<p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-300">
-										Workspace overview
-									</p>
-									<h1 className="mt-3 text-4xl font-semibold tracking-tight text-white">
-										{workspace.name}
-									</h1>
-								</div>
+						<div className="grid gap-8 lg:grid-cols-2">
+							<div className="lg:col-span-2">
+								<EntityHeader
+									eyebrow="Workspace"
+									title={workspace.name}
+									description={workspace.description || 'No description provided for this workspace yet.'}
+								>
+									<span className="rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-slate-300">
+										Owner: {workspace.ownerUsername}
+									</span>
+									<span className="rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-slate-400">
+										Created {new Date(workspace.createdAt).toLocaleDateString()}
+									</span>
+								</EntityHeader>
 							</div>
 
-							<div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
-									<h2 className="text-lg font-semibold text-white">Details</h2>
-									<p className="mt-4 leading-7 text-slate-400">
-										{workspace.description || 'No description provided for this workspace yet.'}
-									</p>
-								</div>
-
-								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
-									<h2 className="text-lg font-semibold text-white">Quick info</h2>
-									<div className="mt-5 space-y-4 text-sm text-slate-400">
-										<div>
-											<p className="text-slate-500">Owner</p>
-											<p className="mt-1 font-medium text-slate-200">{workspace.ownerUsername}</p>
-										</div>
-										<div>
-											<p className="text-slate-500">Created</p>
-											<p className="mt-1 font-medium text-slate-200">
-												{new Date(workspace.createdAt).toLocaleDateString()}
-											</p>
-										</div>
-									</div>
-								</div>
-							</div>
-
-							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
-								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-									<div>
-										<h2 className="text-lg font-semibold text-white">Projects</h2>
-										<p className="mt-2 text-sm text-slate-400">
-											Projects in this workspace.
-										</p>
-									</div>
-
-									{isCurrentUserOwner && (
+							<Card className="order-1 shadow-xl shadow-black/10 lg:col-span-2">
+								<SectionHeader
+									title="Projects"
+									description="Projects in this workspace."
+									actions={isCurrentUserOwner ? (
 										<form className="w-full max-w-md space-y-3" onSubmit={handleCreateProject}>
 											<input
 												type="text"
@@ -382,11 +362,11 @@ export default function WorkspaceDetail() {
 												{submittingProject ? 'Creating...' : 'Create project'}
 											</button>
 										</form>
-									)}
-								</div>
+									) : undefined}
+								/>
 
 								{projectsLoading && (
-									<div className="mt-6 text-sm text-slate-400">Loading projects...</div>
+									<LoadingState className="mt-6" label="Loading projects" variant="cards" />
 								)}
 
 								{projectsError && !projectsLoading && (
@@ -396,21 +376,24 @@ export default function WorkspaceDetail() {
 								)}
 
 								{!projectsLoading && !projectsError && projects.length === 0 && (
-									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
-										No projects yet.
-									</div>
+									<EmptyState
+										className="mt-6"
+										icon="P"
+										title="No projects yet"
+										description={isCurrentUserOwner ? 'Use the form above to create the first project in this workspace.' : 'The workspace owner has not created a project yet.'}
+									/>
 								)}
 
 								{!projectsLoading && !projectsError && projects.length > 0 && (
-									<div className="mt-6 grid gap-3 md:grid-cols-2">
+									<div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
 										{projects.map((project) => (
 											<Link
 												key={project.id}
 												to={`/projects/${project.id}`}
-												className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 transition hover:border-slate-600 hover:bg-slate-900/70"
+												className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4 outline-none transition hover:-translate-y-0.5 hover:border-slate-600 hover:bg-slate-900/70 focus-visible:border-indigo-400 focus-visible:ring-2 focus-visible:ring-indigo-400/30"
 											>
 												<h3 className="font-medium text-white">{project.name}</h3>
-												<p className="mt-2 text-sm leading-6 text-slate-400">
+												<p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-400">
 													{project.description || 'No description provided for this project yet.'}
 												</p>
 												<p className="mt-4 text-xs text-slate-500">
@@ -420,16 +403,11 @@ export default function WorkspaceDetail() {
 										))}
 									</div>
 								)}
-							</div>
+							</Card>
 
 							{isCurrentUserOwner && (
-								<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
-									<h2 className="text-lg font-semibold text-white">Settings</h2>
-									<p className="mt-2 text-sm text-slate-400">
-										Update your workspace details.
-									</p>
-
-									<form className="mt-6 space-y-4" onSubmit={handleUpdateWorkspace}>
+								<CollapsiblePanel className="order-3" title="Settings" description="Update your workspace details.">
+									<form className="space-y-4" onSubmit={handleUpdateWorkspace}>
 										<div>
 											<label htmlFor="workspace-name" className="text-sm font-medium text-slate-200">
 												Workspace name
@@ -473,19 +451,14 @@ export default function WorkspaceDetail() {
 											{savingWorkspace ? 'Saving...' : 'Save changes'}
 										</button>
 									</form>
-								</div>
+								</CollapsiblePanel>
 							)}
 
-							<div className="rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
-								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-									<div>
-										<h2 className="text-lg font-semibold text-white">Members</h2>
-										<p className="mt-2 text-sm text-slate-400">
-											Manage who can collaborate in this workspace.
-										</p>
-									</div>
-
-									{isCurrentUserOwner && (
+							<Card className={`order-2 ${isCurrentUserOwner ? '' : 'lg:col-span-2'}`}>
+								<SectionHeader
+									title="Members"
+									description="Manage who can collaborate in this workspace."
+									actions={isCurrentUserOwner ? (
 										<form className="flex w-full max-w-md flex-col gap-3 sm:flex-row" onSubmit={handleAddMember}>
 											<input
 												type="email"
@@ -502,8 +475,8 @@ export default function WorkspaceDetail() {
 												{submittingMember ? 'Adding...' : 'Add member'}
 											</button>
 										</form>
-									)}
-								</div>
+									) : undefined}
+								/>
 
 								{memberSubmitError && (
 									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
@@ -518,7 +491,7 @@ export default function WorkspaceDetail() {
 								)}
 
 								{membersLoading && (
-									<div className="mt-6 text-sm text-slate-400">Loading members...</div>
+									<LoadingState className="mt-6" label="Loading workspace members" variant="list" count={2} />
 								)}
 
 								{membersError && !membersLoading && (
@@ -528,9 +501,7 @@ export default function WorkspaceDetail() {
 								)}
 
 								{!membersLoading && !membersError && members.length === 0 && (
-									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
-										No members yet. Add the first one above.
-									</div>
+									<EmptyState className="mt-6" icon="M" title="No members yet" description="Add the first workspace member using the form above." />
 								)}
 
 								{!membersLoading && !membersError && members.length > 0 && (
@@ -545,11 +516,9 @@ export default function WorkspaceDetail() {
 													<p className="mt-1 text-sm text-slate-400">{member.email}</p>
 												</div>
 												<div className="flex items-center gap-3">
-													<span
-														className={`rounded-full px-3 py-1 text-xs font-semibold ${member.role === 'OWNER' ? 'bg-amber-500/15 text-amber-300' : 'bg-indigo-500/15 text-indigo-300'}`}
-													>
+													<StatusBadge tone={member.role === 'OWNER' ? 'amber' : 'indigo'}>
 														{member.role}
-													</span>
+													</StatusBadge>
 													<span className="text-sm text-slate-500">
 														Joined {new Date(member.joinedAt).toLocaleDateString()}
 													</span>
@@ -568,17 +537,12 @@ export default function WorkspaceDetail() {
 										))}
 									</div>
 								)}
-							</div>
+							</Card>
 
 							{isCurrentUserOwner && (
-								<div className="rounded-3xl border border-red-500/30 bg-red-500/5 p-6">
-									<h2 className="text-lg font-semibold text-red-200">Danger zone</h2>
-									<p className="mt-2 text-sm text-slate-400">
-										Permanently delete this workspace and all of its memberships.
-									</p>
-
+								<CollapsiblePanel className="order-4 lg:col-start-2" title="Danger zone" description="Permanently delete this workspace and all of its memberships." variant="danger">
 									{workspaceDeleteError && (
-										<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										<div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
 											{workspaceDeleteError}
 										</div>
 									)}
@@ -591,7 +555,7 @@ export default function WorkspaceDetail() {
 									>
 										{deletingWorkspace ? 'Deleting...' : 'Delete workspace'}
 									</button>
-								</div>
+								</CollapsiblePanel>
 							)}
 						</div>
 					)}

@@ -16,9 +16,11 @@ export default function MainLayout() {
 
 	return (
 		<div className="min-h-screen bg-slate-950 text-slate-100">
-			<header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl">
-				<div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-					<div className="text-xl font-semibold tracking-tight text-white">CollabSpace</div>
+			<header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-xl">
+				<div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+					<Link to="/" className="text-xl font-semibold tracking-tight text-white transition hover:text-indigo-300">
+						CollabSpace
+					</Link>
 					<nav className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-300">
 						<Link
 							to="/"
@@ -60,7 +62,7 @@ export default function MainLayout() {
 					</nav>
 				</div>
 			</header>
-			<main className="mx-auto max-w-6xl px-6 py-8 sm:py-10">
+			<main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
 				<Outlet />
 			</main>
 		</div>

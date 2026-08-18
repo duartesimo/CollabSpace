@@ -1,5 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import EntityHeader from '../components/layout/EntityHeader'
+import EmptyState from '../components/ui/EmptyState'
+import LoadingState from '../components/ui/LoadingState'
+import WorkspaceCard from '../components/workspace/WorkspaceCard'
 import useAuth from '../hooks/useAuth'
 import { getWorkspaces } from '../features/workspace/api/workspace'
 import type { Workspace } from '../features/workspace/types/Workspace'
@@ -76,43 +80,36 @@ export default function Home() {
 	}
 
 	return (
-		<div className="min-h-screen bg-slate-950 px-4 py-10 text-slate-100">
-			<div className="mx-auto max-w-6xl">
-				<div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-					<div>
-						<p className="text-sm font-semibold uppercase tracking-[0.3em] text-indigo-300">
-							Dashboard
-						</p>
-						<h1 className="mt-3 text-4xl font-semibold tracking-tight text-white">
-							Welcome back 👋
-						</h1>
-						<p className="mt-3 max-w-2xl text-slate-400">
-							Manage your workspaces and keep your collaboration spaces organized.
-						</p>
-					</div>
-
+		<div className="text-slate-100">
+			<div className="mx-auto max-w-7xl">
+				<EntityHeader
+					eyebrow="Dashboard"
+					title="Welcome back"
+					description="Choose a workspace to continue collaborating, or create a new space for your next initiative."
+				>
 					<Link
 						to="/workspaces/new"
 						className="inline-flex items-center justify-center rounded-full bg-indigo-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5 hover:bg-indigo-400"
 					>
-						+ Create Workspace
+						<span aria-hidden="true">+</span>&nbsp; Create workspace
 					</Link>
-				</div>
+				</EntityHeader>
 
-				<div className="rounded-[2rem] border border-slate-800 bg-slate-900/60 p-6 shadow-2xl shadow-black/20 backdrop-blur">
-					<div className="mb-6 flex items-center justify-between">
+				<section className="mt-8">
+					<div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
 						<div>
-							<h2 className="text-xl font-semibold text-white">Your Workspaces</h2>
-							<p className="mt-1 text-sm text-slate-500">
-								{workspaces.length} {workspaces.length === 1 ? 'workspace' : 'workspaces'}
-							</p>
+							<h2 className="text-xl font-semibold text-white">Your workspaces</h2>
+							<p className="mt-1 text-sm text-slate-500">All the spaces where you collaborate with your teams.</p>
 						</div>
+						{!loading && !error && (
+							<span className="w-fit rounded-full border border-slate-800 bg-slate-900/70 px-3 py-1 text-xs font-medium text-slate-400">
+								{workspaces.length} {workspaces.length === 1 ? 'workspace' : 'workspaces'}
+							</span>
+						)}
 					</div>
 
 					{loading && (
-						<div className="py-12 text-center text-slate-400">
-							Loading your workspaces...
-						</div>
+						<LoadingState label="Loading your workspaces" variant="cards" />
 					)}
 
 					{error && (
@@ -122,72 +119,30 @@ export default function Home() {
 					)}
 
 					{!loading && !error && workspaces.length === 0 && (
-						<div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-700 bg-slate-950/40 px-6 py-16 text-center">
-							<div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/15 text-3xl">
-								✨
-							</div>
-
-							<h3 className="mt-5 text-xl font-semibold text-white">
-								Create your first workspace
-							</h3>
-
-							<p className="mt-2 max-w-sm text-sm leading-6 text-slate-400">
-								Start organizing your projects and collaboration spaces in one place.
-							</p>
-
-							<Link
-								to="/workspaces/new"
-								className="mt-6 inline-flex items-center justify-center rounded-full bg-indigo-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400"
-							>
-								Create Workspace
-							</Link>
-						</div>
+						<EmptyState
+							className="py-16 sm:py-20"
+							icon="+"
+							title="Create your first workspace"
+							description="Bring projects, tasks, and team collaboration together in one focused space."
+							action={(
+								<Link
+									to="/workspaces/new"
+									className="inline-flex items-center justify-center rounded-full bg-indigo-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:bg-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+								>
+									Create workspace
+								</Link>
+							)}
+						/>
 					)}
 
 					{!loading && !error && workspaces.length > 0 && (
-						<div className="grid gap-5 md:grid-cols-2">
+						<div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
 							{workspaces.map((workspace) => (
-								<Link
-									key={workspace.id}
-									to={`/workspaces/${workspace.id}`}
-									className="group block rounded-3xl border border-slate-800 bg-slate-950/60 p-6 transition duration-200 hover:-translate-y-1 hover:border-indigo-500/40 hover:bg-slate-900"
-								>
-									<div className="flex items-start justify-between gap-4">
-										<div>
-											<h3 className="text-xl font-semibold text-white">
-												{workspace.name}
-											</h3>
-
-											{workspace.description && (
-												<p className="mt-2 text-sm leading-6 text-slate-400">
-													{workspace.description}
-												</p>
-											)}
-										</div>
-
-										<div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/15 text-lg text-indigo-300">
-											◆
-										</div>
-									</div>
-
-									<div className="mt-8 flex items-end justify-between gap-4">
-										<div className="space-y-1 text-sm text-slate-500">
-											<p>Owner: {workspace.ownerUsername}</p>
-											<p>
-												Created:{' '}
-												{new Date(workspace.createdAt).toLocaleDateString()}
-											</p>
-										</div>
-
-										<span className="text-sm font-medium text-indigo-400 opacity-0 transition group-hover:opacity-100">
-											Workspace →
-										</span>
-									</div>
-								</Link>
+								<WorkspaceCard key={workspace.id} workspace={workspace} />
 							))}
 						</div>
 					)}
-				</div>
+				</section>
 			</div>
 		</div>
 	)
