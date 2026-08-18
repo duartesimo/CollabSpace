@@ -4,6 +4,7 @@ import client from '../api/client'
 import EntityHeader from '../components/layout/EntityHeader'
 import Breadcrumbs from '../components/navigation/Breadcrumbs'
 import Card from '../components/ui/Card'
+import CollapsiblePanel from '../components/ui/CollapsiblePanel'
 import EmptyState from '../components/ui/EmptyState'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatusBadge from '../components/ui/StatusBadge'
@@ -17,12 +18,13 @@ import {
 	getWorkspace,
 	getWorkspaceMembers,
 	removeProjectMember,
-	updateProject
+	updateProject,
+	updateTask
 } from '../features/workspace/api/workspace'
 import type { Project, ProjectStatus } from '../features/project/types/Project'
 import type { ProjectMember } from '../features/project/types/ProjectMember'
 import TaskCard from '../features/task/components/TaskCard'
-import type { Task } from '../features/task/types/Task'
+import type { Task, TaskStatus } from '../features/task/types/Task'
 import type { Workspace } from '../features/workspace/types/Workspace'
 import type { WorkspaceMember } from '../features/workspace/types/WorkspaceMember'
 
@@ -78,6 +80,8 @@ export default function ProjectDetail() {
 	const [taskDescription, setTaskDescription] = useState('')
 	const [submittingTask, setSubmittingTask] = useState(false)
 	const [taskSubmitError, setTaskSubmitError] = useState<string | null>(null)
+	const [updatingTaskStatusId, setUpdatingTaskStatusId] = useState<number | null>(null)
+	const [taskStatusUpdateError, setTaskStatusUpdateError] = useState<string | null>(null)
 
 	useEffect(() => {
 		const fetchCurrentUser = async () => {
@@ -386,6 +390,31 @@ export default function ProjectDetail() {
 		}
 	}
 
+	const handleQuickTaskStatusChange = async (task: Task, status: TaskStatus) => {
+		if (task.status === status || updatingTaskStatusId !== null) {
+			return
+		}
+
+		setUpdatingTaskStatusId(task.id)
+		setTaskStatusUpdateError(null)
+
+		try {
+			const updatedTask = await updateTask(task.id, {
+				title: task.title,
+				description: task.description,
+				status
+			})
+			setTasks((currentTasks) => currentTasks.map((currentTask) => (
+				currentTask.id === updatedTask.id ? updatedTask : currentTask
+			)))
+		} catch (err) {
+			const apiMessage = (err as any)?.response?.data?.message
+			setTaskStatusUpdateError(apiMessage || 'Unable to update task status right now.')
+		} finally {
+			setUpdatingTaskStatusId(null)
+		}
+	}
+
 	return (
 		<div className="text-slate-100">
 			<div className="mx-auto max-w-7xl">
@@ -568,6 +597,12 @@ export default function ProjectDetail() {
 									</div>
 								)}
 
+								{taskStatusUpdateError && (
+									<div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										{taskStatusUpdateError}
+									</div>
+								)}
+
 								{!tasksLoading && !tasksError && tasks.length === 0 && (
 									<EmptyState className="mt-6" title="No tasks yet" description="Create the first task for this project above." />
 								)}
@@ -586,9 +621,29 @@ export default function ProjectDetail() {
 														</StatusBadge>
 													</div>
 													<div className="mt-4 space-y-3">
-														{columnTasks.length > 0 ? (
-															columnTasks.map((task) => <TaskCard key={task.id} task={task} />)
-														) : (
+												{columnTasks.length > 0 ? (
+													columnTasks.map((task) => (
+														<div key={task.id} className="space-y-2">
+															<TaskCard task={task} />
+															<div className="flex items-center gap-2 px-1">
+																<label htmlFor={`task-${task.id}-status`} className="shrink-0 text-xs font-medium text-slate-500">
+																	{updatingTaskStatusId === task.id ? 'Saving...' : 'Quick status'}
+																</label>
+																<select
+																	id={`task-${task.id}-status`}
+																	value={task.status}
+																	onChange={(event) => void handleQuickTaskStatusChange(task, event.target.value as TaskStatus)}
+																	disabled={updatingTaskStatusId !== null}
+																	className="min-w-0 flex-1 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-medium text-slate-200 outline-none transition focus:border-indigo-400 disabled:cursor-wait disabled:opacity-60"
+																>
+																	<option value="TODO">TODO</option>
+																	<option value="IN_PROGRESS">IN PROGRESS</option>
+																	<option value="DONE">DONE</option>
+																</select>
+															</div>
+														</div>
+													))
+												) : (
 															<EmptyState title={`No ${status.toLowerCase().replace('_', ' ')} tasks`} />
 														)}
 													</div>
@@ -600,10 +655,8 @@ export default function ProjectDetail() {
 							</Card>
 
 							{isCurrentUserOwner && (
-								<Card className="order-4">
-									<SectionHeader title="Settings" description="Update this project’s details and status." />
-
-									<form className="mt-6 space-y-4" onSubmit={handleUpdateProject}>
+								<CollapsiblePanel className="order-4" title="Settings" description="Update this project’s details and status.">
+									<form className="space-y-4" onSubmit={handleUpdateProject}>
 										<div>
 											<label htmlFor="project-name" className="text-sm font-medium text-slate-200">
 												Project name
@@ -663,15 +716,13 @@ export default function ProjectDetail() {
 											{savingProject ? 'Saving...' : 'Save changes'}
 										</button>
 									</form>
-								</Card>
+								</CollapsiblePanel>
 							)}
 
 							{isCurrentUserOwner && (
-								<Card className="order-5 lg:col-start-2" variant="danger">
-									<SectionHeader title="Danger zone" description="Permanently delete this project." className="[&_h2]:text-red-200" />
-
+								<CollapsiblePanel className="order-5 lg:col-start-2" title="Danger zone" description="Permanently delete this project." variant="danger">
 									{projectDeleteError && (
-										<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										<div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
 											{projectDeleteError}
 										</div>
 									)}
@@ -684,7 +735,7 @@ export default function ProjectDetail() {
 									>
 										{deletingProject ? 'Deleting...' : 'Delete project'}
 									</button>
-								</Card>
+								</CollapsiblePanel>
 							)}
 						</div>
 					)}

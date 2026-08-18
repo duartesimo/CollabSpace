@@ -4,6 +4,7 @@ import client from '../api/client'
 import EntityHeader from '../components/layout/EntityHeader'
 import Breadcrumbs from '../components/navigation/Breadcrumbs'
 import Card from '../components/ui/Card'
+import CollapsiblePanel from '../components/ui/CollapsiblePanel'
 import EmptyState from '../components/ui/EmptyState'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatusBadge from '../components/ui/StatusBadge'
@@ -399,10 +400,8 @@ export default function WorkspaceDetail() {
 							</Card>
 
 							{isCurrentUserOwner && (
-								<Card className="order-3">
-									<SectionHeader title="Settings" description="Update your workspace details." />
-
-									<form className="mt-6 space-y-4" onSubmit={handleUpdateWorkspace}>
+								<CollapsiblePanel className="order-3" title="Settings" description="Update your workspace details.">
+									<form className="space-y-4" onSubmit={handleUpdateWorkspace}>
 										<div>
 											<label htmlFor="workspace-name" className="text-sm font-medium text-slate-200">
 												Workspace name
@@ -446,7 +445,7 @@ export default function WorkspaceDetail() {
 											{savingWorkspace ? 'Saving...' : 'Save changes'}
 										</button>
 									</form>
-								</Card>
+								</CollapsiblePanel>
 							)}
 
 							<Card className={`order-2 ${isCurrentUserOwner ? '' : 'lg:col-span-2'}`}>
@@ -535,11 +534,9 @@ export default function WorkspaceDetail() {
 							</Card>
 
 							{isCurrentUserOwner && (
-								<Card className="order-4 lg:col-start-2" variant="danger">
-									<SectionHeader title="Danger zone" description="Permanently delete this workspace and all of its memberships." className="[&_h2]:text-red-200" />
-
+								<CollapsiblePanel className="order-4 lg:col-start-2" title="Danger zone" description="Permanently delete this workspace and all of its memberships." variant="danger">
 									{workspaceDeleteError && (
-										<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+										<div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
 											{workspaceDeleteError}
 										</div>
 									)}
@@ -552,7 +549,7 @@ export default function WorkspaceDetail() {
 									>
 										{deletingWorkspace ? 'Deleting...' : 'Delete workspace'}
 									</button>
-								</Card>
+								</CollapsiblePanel>
 							)}
 						</div>
 					)}

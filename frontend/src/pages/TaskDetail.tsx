@@ -4,6 +4,7 @@ import client from '../api/client'
 import EntityHeader from '../components/layout/EntityHeader'
 import Breadcrumbs from '../components/navigation/Breadcrumbs'
 import Card from '../components/ui/Card'
+import CollapsiblePanel from '../components/ui/CollapsiblePanel'
 import EmptyState from '../components/ui/EmptyState'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatusBadge from '../components/ui/StatusBadge'
@@ -523,9 +524,8 @@ export default function TaskDetail() {
 									</p>
 								</Card>
 
-									<Card className="order-4 lg:col-start-2 lg:row-start-1" variant="muted">
-									<SectionHeader title="Task info" />
-									<div className="mt-5 space-y-4 text-sm text-slate-400">
+									<CollapsiblePanel className="order-4 lg:col-start-2 lg:row-start-1" title="Advanced metadata" description="Project context and task timestamps." variant="muted">
+									<div className="space-y-4 text-sm text-slate-400">
 										<div>
 											<p className="text-slate-500">Project</p>
 											<Link to={`/projects/${task.projectId}`} className="mt-1 block font-medium text-indigo-300 hover:text-indigo-200">
@@ -545,7 +545,7 @@ export default function TaskDetail() {
 											</p>
 										</div>
 									</div>
-									</Card>
+									</CollapsiblePanel>
 							</div>
 
 							<Card className="order-5 lg:col-start-2 lg:row-start-2" variant="muted">
@@ -704,10 +704,8 @@ export default function TaskDetail() {
 								)}
 							</Card>
 
-							<Card className="order-6 lg:col-start-2 lg:row-start-3" variant="muted">
-								<SectionHeader title="Settings" description="Update this task’s details and status." />
-
-								<form className="mt-6 space-y-4" onSubmit={handleUpdateTask}>
+							<CollapsiblePanel className="order-6 lg:col-start-2 lg:row-start-3" title="Settings" description="Update this task’s details and status." variant="muted">
+								<form className="space-y-4" onSubmit={handleUpdateTask}>
 									<div>
 										<label htmlFor="task-title" className="text-sm font-medium text-slate-200">
 											Task title
@@ -767,13 +765,11 @@ export default function TaskDetail() {
 										{savingTask ? 'Saving...' : 'Save changes'}
 									</button>
 								</form>
-							</Card>
+							</CollapsiblePanel>
 
-							<Card className="order-7 lg:col-start-2 lg:row-start-4" variant="danger">
-								<SectionHeader title="Danger zone" description="Permanently delete this task." className="[&_h2]:text-red-200" />
-
+							<CollapsiblePanel className="order-7 lg:col-start-2 lg:row-start-4" title="Danger zone" description="Permanently delete this task." variant="danger">
 								{taskDeleteError && (
-									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+									<div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
 										{taskDeleteError}
 									</div>
 								)}
@@ -786,7 +782,7 @@ export default function TaskDetail() {
 								>
 									{deletingTask ? 'Deleting...' : 'Delete task'}
 								</button>
-							</Card>
+							</CollapsiblePanel>
 							</div>
 						</div>
 					)}
