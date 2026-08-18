@@ -3,6 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import client from '../api/client'
 import EntityHeader from '../components/layout/EntityHeader'
 import Breadcrumbs from '../components/navigation/Breadcrumbs'
+import Card from '../components/ui/Card'
+import EmptyState from '../components/ui/EmptyState'
+import SectionHeader from '../components/ui/SectionHeader'
+import StatusBadge from '../components/ui/StatusBadge'
 import {
 	addProjectMember,
 	createProjectTask,
@@ -415,9 +419,9 @@ export default function ProjectDetail() {
 									title={project.name}
 									description={project.description || 'No description provided for this project yet.'}
 								>
-									<span className="rounded-full bg-indigo-500/15 px-3 py-1.5 text-xs font-semibold text-indigo-300">
+									<StatusBadge className="py-1.5">
 										{project.status}
-									</span>
+									</StatusBadge>
 									<Link
 										to={`/workspaces/${project.workspaceId}`}
 										className="rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
@@ -430,16 +434,11 @@ export default function ProjectDetail() {
 								</EntityHeader>
 							</div>
 
-							<div className={`order-3 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 ${isCurrentUserOwner ? '' : 'lg:col-span-2'}`}>
-								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-									<div>
-										<h2 className="text-lg font-semibold text-white">Members</h2>
-										<p className="mt-2 text-sm text-slate-400">
-											People collaborating on this project.
-										</p>
-									</div>
-
-									{isCurrentUserOwner && (
+							<Card className={`order-3 ${isCurrentUserOwner ? '' : 'lg:col-span-2'}`}>
+								<SectionHeader
+									title="Members"
+									description="People collaborating on this project."
+									actions={isCurrentUserOwner ? (
 										<form className="flex w-full max-w-md flex-col gap-3 sm:flex-row" onSubmit={handleAddProjectMember}>
 											<input
 												type="email"
@@ -456,8 +455,8 @@ export default function ProjectDetail() {
 												{submittingProjectMember ? 'Adding...' : 'Add member'}
 											</button>
 										</form>
-									)}
-								</div>
+									) : undefined}
+								/>
 
 								{projectMemberSubmitError && (
 									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
@@ -482,9 +481,7 @@ export default function ProjectDetail() {
 								)}
 
 								{!projectMembersLoading && !projectMembersError && projectMembers.length === 0 && (
-									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
-										No project members yet.
-									</div>
+									<EmptyState className="mt-6" title="No project members yet" description="Add a workspace member to this project above." />
 								)}
 
 								{!projectMembersLoading && !projectMembersError && projectMembers.length > 0 && (
@@ -499,11 +496,9 @@ export default function ProjectDetail() {
 													<p className="mt-1 text-sm text-slate-400">{member.email}</p>
 												</div>
 												<div className="flex items-center gap-3">
-													<span
-														className={`rounded-full px-3 py-1 text-xs font-semibold ${member.role === 'OWNER' ? 'bg-amber-500/15 text-amber-300' : 'bg-indigo-500/15 text-indigo-300'}`}
-													>
+													<StatusBadge tone={member.role === 'OWNER' ? 'amber' : 'indigo'}>
 														{member.role}
-													</span>
+													</StatusBadge>
 													<span className="text-sm text-slate-500">
 														Joined {new Date(member.joinedAt).toLocaleDateString()}
 													</span>
@@ -522,17 +517,13 @@ export default function ProjectDetail() {
 										))}
 									</div>
 								)}
-							</div>
+							</Card>
 
-							<div className="order-2 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 shadow-xl shadow-black/10 lg:col-span-2">
-								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-									<div>
-										<h2 className="text-lg font-semibold text-white">Tasks</h2>
-										<p className="mt-2 text-sm text-slate-400">
-											Tasks in this project.
-										</p>
-									</div>
-
+							<Card className="order-2 shadow-xl shadow-black/10 lg:col-span-2">
+								<SectionHeader
+									title="Tasks"
+									description="Tasks in this project."
+									actions={
 									<form className="w-full max-w-md space-y-3" onSubmit={handleCreateTask}>
 										<input
 											type="text"
@@ -564,7 +555,8 @@ export default function ProjectDetail() {
 											{submittingTask ? 'Creating...' : 'Create task'}
 										</button>
 									</form>
-								</div>
+									}
+								/>
 
 								{tasksLoading && (
 									<div className="mt-6 text-sm text-slate-400">Loading tasks...</div>
@@ -577,9 +569,7 @@ export default function ProjectDetail() {
 								)}
 
 								{!tasksLoading && !tasksError && tasks.length === 0 && (
-									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
-										No tasks yet.
-									</div>
+									<EmptyState className="mt-6" title="No tasks yet" description="Create the first task for this project above." />
 								)}
 
 								{!tasksLoading && !tasksError && tasks.length > 0 && (
@@ -591,17 +581,15 @@ export default function ProjectDetail() {
 												<div key={status} className="rounded-3xl border border-slate-800 bg-slate-900/40 p-4">
 													<div className="flex items-center justify-between gap-3">
 														<h3 className="font-semibold text-white">{status}</h3>
-														<span className="rounded-full bg-indigo-500/15 px-3 py-1 text-xs font-semibold text-indigo-300">
+														<StatusBadge>
 															{columnTasks.length}
-														</span>
+														</StatusBadge>
 													</div>
 													<div className="mt-4 space-y-3">
 														{columnTasks.length > 0 ? (
 															columnTasks.map((task) => <TaskCard key={task.id} task={task} />)
 														) : (
-															<p className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-500">
-																No {status.toLowerCase().replace('_', ' ')} tasks.
-															</p>
+															<EmptyState title={`No ${status.toLowerCase().replace('_', ' ')} tasks`} />
 														)}
 													</div>
 												</div>
@@ -609,14 +597,11 @@ export default function ProjectDetail() {
 										})}
 									</div>
 								)}
-							</div>
+							</Card>
 
 							{isCurrentUserOwner && (
-								<div className="order-4 rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
-									<h2 className="text-lg font-semibold text-white">Settings</h2>
-									<p className="mt-2 text-sm text-slate-400">
-										Update this project’s details and status.
-									</p>
+								<Card className="order-4">
+									<SectionHeader title="Settings" description="Update this project’s details and status." />
 
 									<form className="mt-6 space-y-4" onSubmit={handleUpdateProject}>
 										<div>
@@ -678,15 +663,12 @@ export default function ProjectDetail() {
 											{savingProject ? 'Saving...' : 'Save changes'}
 										</button>
 									</form>
-								</div>
+								</Card>
 							)}
 
 							{isCurrentUserOwner && (
-								<div className="order-5 rounded-3xl border border-red-500/30 bg-red-500/5 p-6 lg:col-start-2">
-									<h2 className="text-lg font-semibold text-red-200">Danger zone</h2>
-									<p className="mt-2 text-sm text-slate-400">
-										Permanently delete this project.
-									</p>
+								<Card className="order-5 lg:col-start-2" variant="danger">
+									<SectionHeader title="Danger zone" description="Permanently delete this project." className="[&_h2]:text-red-200" />
 
 									{projectDeleteError && (
 										<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
@@ -702,7 +684,7 @@ export default function ProjectDetail() {
 									>
 										{deletingProject ? 'Deleting...' : 'Delete project'}
 									</button>
-								</div>
+								</Card>
 							)}
 						</div>
 					)}

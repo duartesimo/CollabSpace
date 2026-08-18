@@ -3,6 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import client from '../api/client'
 import EntityHeader from '../components/layout/EntityHeader'
 import Breadcrumbs from '../components/navigation/Breadcrumbs'
+import Card from '../components/ui/Card'
+import EmptyState from '../components/ui/EmptyState'
+import SectionHeader from '../components/ui/SectionHeader'
+import StatusBadge from '../components/ui/StatusBadge'
 import {
 	addWorkspaceMember,
 	createWorkspaceProject,
@@ -320,16 +324,11 @@ export default function WorkspaceDetail() {
 								</EntityHeader>
 							</div>
 
-							<div className="order-1 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 shadow-xl shadow-black/10 lg:col-span-2">
-								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-									<div>
-										<h2 className="text-lg font-semibold text-white">Projects</h2>
-										<p className="mt-2 text-sm text-slate-400">
-											Projects in this workspace.
-										</p>
-									</div>
-
-									{isCurrentUserOwner && (
+							<Card className="order-1 shadow-xl shadow-black/10 lg:col-span-2">
+								<SectionHeader
+									title="Projects"
+									description="Projects in this workspace."
+									actions={isCurrentUserOwner ? (
 										<form className="w-full max-w-md space-y-3" onSubmit={handleCreateProject}>
 											<input
 												type="text"
@@ -361,8 +360,8 @@ export default function WorkspaceDetail() {
 												{submittingProject ? 'Creating...' : 'Create project'}
 											</button>
 										</form>
-									)}
-								</div>
+									) : undefined}
+								/>
 
 								{projectsLoading && (
 									<div className="mt-6 text-sm text-slate-400">Loading projects...</div>
@@ -375,9 +374,7 @@ export default function WorkspaceDetail() {
 								)}
 
 								{!projectsLoading && !projectsError && projects.length === 0 && (
-									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
-										No projects yet.
-									</div>
+									<EmptyState className="mt-6" title="No projects yet" description="Create a project to start organizing work in this workspace." />
 								)}
 
 								{!projectsLoading && !projectsError && projects.length > 0 && (
@@ -399,14 +396,11 @@ export default function WorkspaceDetail() {
 										))}
 									</div>
 								)}
-							</div>
+							</Card>
 
 							{isCurrentUserOwner && (
-								<div className="order-3 rounded-3xl border border-slate-800 bg-slate-950/50 p-6">
-									<h2 className="text-lg font-semibold text-white">Settings</h2>
-									<p className="mt-2 text-sm text-slate-400">
-										Update your workspace details.
-									</p>
+								<Card className="order-3">
+									<SectionHeader title="Settings" description="Update your workspace details." />
 
 									<form className="mt-6 space-y-4" onSubmit={handleUpdateWorkspace}>
 										<div>
@@ -452,19 +446,14 @@ export default function WorkspaceDetail() {
 											{savingWorkspace ? 'Saving...' : 'Save changes'}
 										</button>
 									</form>
-								</div>
+								</Card>
 							)}
 
-							<div className={`order-2 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 ${isCurrentUserOwner ? '' : 'lg:col-span-2'}`}>
-								<div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-									<div>
-										<h2 className="text-lg font-semibold text-white">Members</h2>
-										<p className="mt-2 text-sm text-slate-400">
-											Manage who can collaborate in this workspace.
-										</p>
-									</div>
-
-									{isCurrentUserOwner && (
+							<Card className={`order-2 ${isCurrentUserOwner ? '' : 'lg:col-span-2'}`}>
+								<SectionHeader
+									title="Members"
+									description="Manage who can collaborate in this workspace."
+									actions={isCurrentUserOwner ? (
 										<form className="flex w-full max-w-md flex-col gap-3 sm:flex-row" onSubmit={handleAddMember}>
 											<input
 												type="email"
@@ -481,8 +470,8 @@ export default function WorkspaceDetail() {
 												{submittingMember ? 'Adding...' : 'Add member'}
 											</button>
 										</form>
-									)}
-								</div>
+									) : undefined}
+								/>
 
 								{memberSubmitError && (
 									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
@@ -507,9 +496,7 @@ export default function WorkspaceDetail() {
 								)}
 
 								{!membersLoading && !membersError && members.length === 0 && (
-									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
-										No members yet. Add the first one above.
-									</div>
+									<EmptyState className="mt-6" title="No members yet" description="Add the first workspace member above." />
 								)}
 
 								{!membersLoading && !membersError && members.length > 0 && (
@@ -524,11 +511,9 @@ export default function WorkspaceDetail() {
 													<p className="mt-1 text-sm text-slate-400">{member.email}</p>
 												</div>
 												<div className="flex items-center gap-3">
-													<span
-														className={`rounded-full px-3 py-1 text-xs font-semibold ${member.role === 'OWNER' ? 'bg-amber-500/15 text-amber-300' : 'bg-indigo-500/15 text-indigo-300'}`}
-													>
+													<StatusBadge tone={member.role === 'OWNER' ? 'amber' : 'indigo'}>
 														{member.role}
-													</span>
+													</StatusBadge>
 													<span className="text-sm text-slate-500">
 														Joined {new Date(member.joinedAt).toLocaleDateString()}
 													</span>
@@ -547,14 +532,11 @@ export default function WorkspaceDetail() {
 										))}
 									</div>
 								)}
-							</div>
+							</Card>
 
 							{isCurrentUserOwner && (
-								<div className="order-4 rounded-3xl border border-red-500/30 bg-red-500/5 p-6 lg:col-start-2">
-									<h2 className="text-lg font-semibold text-red-200">Danger zone</h2>
-									<p className="mt-2 text-sm text-slate-400">
-										Permanently delete this workspace and all of its memberships.
-									</p>
+								<Card className="order-4 lg:col-start-2" variant="danger">
+									<SectionHeader title="Danger zone" description="Permanently delete this workspace and all of its memberships." className="[&_h2]:text-red-200" />
 
 									{workspaceDeleteError && (
 										<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
@@ -570,7 +552,7 @@ export default function WorkspaceDetail() {
 									>
 										{deletingWorkspace ? 'Deleting...' : 'Delete workspace'}
 									</button>
-								</div>
+								</Card>
 							)}
 						</div>
 					)}

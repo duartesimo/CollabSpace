@@ -3,6 +3,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import client from '../api/client'
 import EntityHeader from '../components/layout/EntityHeader'
 import Breadcrumbs from '../components/navigation/Breadcrumbs'
+import Card from '../components/ui/Card'
+import EmptyState from '../components/ui/EmptyState'
+import SectionHeader from '../components/ui/SectionHeader'
+import StatusBadge from '../components/ui/StatusBadge'
 import {
 	assignTask,
 	createTaskComment,
@@ -496,9 +500,9 @@ export default function TaskDetail() {
 								eyebrow="Task"
 								title={task.title}
 							>
-								<span className="rounded-full bg-indigo-500/15 px-3 py-1.5 text-xs font-semibold text-indigo-300">
+								<StatusBadge className="py-1.5">
 									{task.status}
-								</span>
+								</StatusBadge>
 								<Link
 									to={`/projects/${task.projectId}`}
 									className="rounded-full border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
@@ -512,15 +516,15 @@ export default function TaskDetail() {
 
 							<div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
 								<div className="contents">
-									<div className="order-1 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 lg:col-start-1 lg:row-start-1">
-									<h2 className="text-lg font-semibold text-white">Details</h2>
+									<Card className="order-1 lg:col-start-1 lg:row-start-1">
+									<SectionHeader title="Details" />
 									<p className="mt-4 leading-7 text-slate-400">
 										{task.description || 'No description provided for this task yet.'}
 									</p>
-								</div>
+								</Card>
 
-									<div className="order-4 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 lg:col-start-2 lg:row-start-1">
-									<h2 className="text-lg font-semibold text-white">Task info</h2>
+									<Card className="order-4 lg:col-start-2 lg:row-start-1" variant="muted">
+									<SectionHeader title="Task info" />
 									<div className="mt-5 space-y-4 text-sm text-slate-400">
 										<div>
 											<p className="text-slate-500">Project</p>
@@ -541,14 +545,11 @@ export default function TaskDetail() {
 											</p>
 										</div>
 									</div>
-									</div>
+									</Card>
 							</div>
 
-							<div className="order-5 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 lg:col-start-2 lg:row-start-2">
-								<h2 className="text-lg font-semibold text-white">Assignment</h2>
-								<p className="mt-2 text-sm text-slate-400">
-									Assign this task to a project member.
-								</p>
+							<Card className="order-5 lg:col-start-2 lg:row-start-2" variant="muted">
+								<SectionHeader title="Assignment" description="Assign this task to a project member." />
 
 								<div className="mt-6 rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
 									<p className="text-sm text-slate-500">Current assignee</p>
@@ -612,13 +613,10 @@ export default function TaskDetail() {
 										{assignmentError}
 									</div>
 								)}
-							</div>
+							</Card>
 
-							<div className="order-2 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 lg:col-start-1 lg:row-start-2">
-								<h2 className="text-lg font-semibold text-white">Comments</h2>
-								<p className="mt-2 text-sm text-slate-400">
-									Discuss this task with project members.
-								</p>
+							<Card className="order-2 lg:col-start-1 lg:row-start-2">
+								<SectionHeader title="Comments" description="Discuss this task with project members." />
 
 								<form className="mt-6 space-y-3" onSubmit={handleCreateComment}>
 									<textarea
@@ -663,9 +661,7 @@ export default function TaskDetail() {
 								)}
 
 								{!commentsLoading && !commentsError && comments.length === 0 && (
-									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
-										No comments yet.
-									</div>
+									<EmptyState className="mt-6" title="No comments yet" description="Start the conversation by adding the first comment." />
 								)}
 
 								{!commentsLoading && !commentsError && comments.length > 0 && (
@@ -680,13 +676,10 @@ export default function TaskDetail() {
 										))}
 									</div>
 								)}
-							</div>
+							</Card>
 
-							<div className="order-3 rounded-3xl border border-slate-800 bg-slate-950/50 p-6 lg:col-start-1 lg:row-start-3">
-								<h2 className="text-lg font-semibold text-white">Activity</h2>
-								<p className="mt-2 text-sm text-slate-400">
-									Recent changes and updates for this task.
-								</p>
+							<Card className="order-3 lg:col-start-1 lg:row-start-3">
+								<SectionHeader title="Activity" description="Recent changes and updates for this task." />
 
 								{activitiesLoading && (
 									<div className="mt-6 text-sm text-slate-400">Loading activity...</div>
@@ -699,9 +692,7 @@ export default function TaskDetail() {
 								)}
 
 								{!activitiesLoading && !activitiesError && activities.length === 0 && (
-									<div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 p-4 text-sm text-slate-400">
-										No activity yet.
-									</div>
+									<EmptyState className="mt-6" title="No activity yet" description="Task changes will appear here as they happen." />
 								)}
 
 								{!activitiesLoading && !activitiesError && activities.length > 0 && (
@@ -711,13 +702,10 @@ export default function TaskDetail() {
 										))}
 									</div>
 								)}
-							</div>
+							</Card>
 
-							<div className="order-6 rounded-3xl border border-slate-800 bg-slate-900/60 p-6 lg:col-start-2 lg:row-start-3">
-								<h2 className="text-lg font-semibold text-white">Settings</h2>
-								<p className="mt-2 text-sm text-slate-400">
-									Update this task’s details and status.
-								</p>
+							<Card className="order-6 lg:col-start-2 lg:row-start-3" variant="muted">
+								<SectionHeader title="Settings" description="Update this task’s details and status." />
 
 								<form className="mt-6 space-y-4" onSubmit={handleUpdateTask}>
 									<div>
@@ -779,13 +767,10 @@ export default function TaskDetail() {
 										{savingTask ? 'Saving...' : 'Save changes'}
 									</button>
 								</form>
-							</div>
+							</Card>
 
-							<div className="order-7 rounded-3xl border border-red-500/30 bg-red-500/5 p-6 lg:col-start-2 lg:row-start-4">
-								<h2 className="text-lg font-semibold text-red-200">Danger zone</h2>
-								<p className="mt-2 text-sm text-slate-400">
-									Permanently delete this task.
-								</p>
+							<Card className="order-7 lg:col-start-2 lg:row-start-4" variant="danger">
+								<SectionHeader title="Danger zone" description="Permanently delete this task." className="[&_h2]:text-red-200" />
 
 								{taskDeleteError && (
 									<div className="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
@@ -801,7 +786,7 @@ export default function TaskDetail() {
 								>
 									{deletingTask ? 'Deleting...' : 'Delete task'}
 								</button>
-							</div>
+							</Card>
 							</div>
 						</div>
 					)}
