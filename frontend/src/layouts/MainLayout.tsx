@@ -22,9 +22,13 @@ export default function MainLayout() {
 		}
 
 		let isMounted = true
+		let isFetching = false
 
-		const fetchNotifications = async () => {
-			setNotificationsLoading(true)
+		const fetchNotifications = async (showLoading: boolean) => {
+			if (isFetching) return
+
+			isFetching = true
+			if (showLoading) setNotificationsLoading(true)
 			setNotificationsError(null)
 
 			try {
@@ -33,14 +37,19 @@ export default function MainLayout() {
 			} catch {
 				if (isMounted) setNotificationsError('Unable to load notifications right now.')
 			} finally {
-				if (isMounted) setNotificationsLoading(false)
+				if (isMounted && showLoading) setNotificationsLoading(false)
+				isFetching = false
 			}
 		}
 
-		void fetchNotifications()
+		void fetchNotifications(true)
+		const pollingInterval = window.setInterval(() => {
+			void fetchNotifications(false)
+		}, 30_000)
 
 		return () => {
 			isMounted = false
+			window.clearInterval(pollingInterval)
 		}
 	}, [isAuthenticated])
 
