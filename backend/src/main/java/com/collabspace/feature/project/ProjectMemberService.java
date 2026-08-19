@@ -1,5 +1,7 @@
 package com.collabspace.feature.project;
 
+import com.collabspace.feature.notification.NotificationService;
+import com.collabspace.feature.notification.NotificationType;
 import com.collabspace.feature.project.dto.AddProjectMemberRequest;
 import com.collabspace.feature.project.dto.ProjectMemberResponse;
 import com.collabspace.feature.project.member.ProjectMember;
@@ -21,13 +23,16 @@ public class ProjectMemberService {
 	private final UserRepository userRepository;
 	private final ProjectMemberRepository projectMemberRepository;
 	private final WorkspaceMemberService workspaceMemberService;
+	private final NotificationService notificationService;
 
 	public ProjectMemberService(ProjectRepository projectRepository, UserRepository userRepository,
-			ProjectMemberRepository projectMemberRepository, WorkspaceMemberService workspaceMemberService) {
+			ProjectMemberRepository projectMemberRepository, WorkspaceMemberService workspaceMemberService,
+			NotificationService notificationService) {
 		this.projectRepository = projectRepository;
 		this.userRepository = userRepository;
 		this.projectMemberRepository = projectMemberRepository;
 		this.workspaceMemberService = workspaceMemberService;
+		this.notificationService = notificationService;
 	}
 
 	public List<ProjectMemberResponse> getProjectMembers(String email, Long projectId) {
@@ -75,7 +80,12 @@ public class ProjectMemberService {
 		member.setRole(ProjectRole.MEMBER);
 		member.setJoinedAt(LocalDateTime.now());
 
-		return mapToResponse(projectMemberRepository.save(member));
+		ProjectMember savedMember = projectMemberRepository.save(member);
+		notificationService.createNotification(userToAdd, NotificationType.PROJECT_MEMBER_ADDED,
+				"Added to project",
+				"You were added to project " + project.getName());
+
+		return mapToResponse(savedMember);
 	}
 
 	@Transactional
@@ -94,6 +104,9 @@ public class ProjectMemberService {
 		}
 
 		projectMemberRepository.delete(member);
+		notificationService.createNotification(userToRemove, NotificationType.PROJECT_MEMBER_REMOVED,
+				"Removed from project",
+				"You were removed from project " + project.getName());
 	}
 
 	private Project getProject(Long projectId) {

@@ -17,7 +17,9 @@ const notificationTypeMetadata: Record<NotificationType, {
 }> = {
 	TASK_ASSIGNED: { label: 'Task assigned', tone: 'indigo' },
 	COMMENT_CREATED: { label: 'New comment', tone: 'amber' },
-	TASK_STATUS_CHANGED: { label: 'Status changed', tone: 'emerald' }
+	TASK_STATUS_CHANGED: { label: 'Status changed', tone: 'emerald' },
+	PROJECT_MEMBER_ADDED: { label: 'Added to project', tone: 'indigo' },
+	PROJECT_MEMBER_REMOVED: { label: 'Removed from project', tone: 'amber' }
 }
 
 function formatNotificationDate(value: string) {

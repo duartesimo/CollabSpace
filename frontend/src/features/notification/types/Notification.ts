@@ -1,4 +1,9 @@
-export type NotificationType = 'TASK_ASSIGNED' | 'COMMENT_CREATED' | 'TASK_STATUS_CHANGED'
+export type NotificationType =
+	| 'TASK_ASSIGNED'
+	| 'COMMENT_CREATED'
+	| 'TASK_STATUS_CHANGED'
+	| 'PROJECT_MEMBER_ADDED'
+	| 'PROJECT_MEMBER_REMOVED'
 
 export interface Notification {
 	id: number
