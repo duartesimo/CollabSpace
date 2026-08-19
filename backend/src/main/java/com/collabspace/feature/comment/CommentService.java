@@ -4,6 +4,8 @@ import com.collabspace.feature.activity.ActivityService;
 import com.collabspace.feature.activity.ActivityType;
 import com.collabspace.feature.comment.dto.CommentResponse;
 import com.collabspace.feature.comment.dto.CreateCommentRequest;
+import com.collabspace.feature.notification.NotificationService;
+import com.collabspace.feature.notification.NotificationType;
 import com.collabspace.feature.project.ProjectMemberService;
 import com.collabspace.feature.task.Task;
 import com.collabspace.feature.task.TaskRepository;
@@ -23,14 +25,17 @@ public class CommentService {
 	private final UserRepository userRepository;
 	private final ProjectMemberService projectMemberService;
 	private final ActivityService activityService;
+	private final NotificationService notificationService;
 
 	public CommentService(CommentRepository commentRepository, TaskRepository taskRepository, UserRepository userRepository,
-			ProjectMemberService projectMemberService, ActivityService activityService) {
+			ProjectMemberService projectMemberService, ActivityService activityService,
+			NotificationService notificationService) {
 		this.commentRepository = commentRepository;
 		this.taskRepository = taskRepository;
 		this.userRepository = userRepository;
 		this.projectMemberService = projectMemberService;
 		this.activityService = activityService;
+		this.notificationService = notificationService;
 	}
 
 	public List<CommentResponse> getTaskComments(String email, Long taskId) {
@@ -61,6 +66,11 @@ public class CommentService {
 		Comment savedComment = commentRepository.save(comment);
 		activityService.createActivity(task, author, ActivityType.COMMENT_CREATED,
 				author.getUsername() + " added a comment");
+		if (task.getAssignee() != null && !task.getAssignee().getId().equals(author.getId())) {
+			notificationService.createNotification(task.getAssignee(), NotificationType.COMMENT_CREATED,
+					"New comment",
+					author.getUsername() + " commented on " + task.getTitle());
+		}
 
 		return mapToResponse(savedComment);
 	}

@@ -2,6 +2,8 @@ package com.collabspace.feature.task;
 
 import com.collabspace.feature.activity.ActivityService;
 import com.collabspace.feature.activity.ActivityType;
+import com.collabspace.feature.notification.NotificationService;
+import com.collabspace.feature.notification.NotificationType;
 import com.collabspace.feature.project.Project;
 import com.collabspace.feature.project.ProjectMemberService;
 import com.collabspace.feature.task.dto.TaskAssigneeResponse;
@@ -23,13 +25,16 @@ public class TaskService {
 	private final UserRepository userRepository;
 	private final ProjectMemberService projectMemberService;
 	private final ActivityService activityService;
+	private final NotificationService notificationService;
 
 	public TaskService(TaskRepository taskRepository, UserRepository userRepository,
-			ProjectMemberService projectMemberService, ActivityService activityService) {
+			ProjectMemberService projectMemberService, ActivityService activityService,
+			NotificationService notificationService) {
 		this.taskRepository = taskRepository;
 		this.userRepository = userRepository;
 		this.projectMemberService = projectMemberService;
 		this.activityService = activityService;
+		this.notificationService = notificationService;
 	}
 
 	public List<TaskResponse> getProjectTasks(String email, Long projectId) {
@@ -64,6 +69,12 @@ public class TaskService {
 		if (previousStatus != request.getStatus()) {
 			activityService.createActivity(updatedTask, currentUser, ActivityType.TASK_STATUS_CHANGED,
 					currentUser.getUsername() + " changed status from " + previousStatus + " to " + request.getStatus());
+			if (updatedTask.getAssignee() != null
+					&& !updatedTask.getAssignee().getId().equals(currentUser.getId())) {
+				notificationService.createNotification(updatedTask.getAssignee(), NotificationType.TASK_STATUS_CHANGED,
+						"Task status changed",
+						currentUser.getUsername() + " changed task status to " + request.getStatus());
+			}
 		} else {
 			activityService.createActivity(updatedTask, currentUser, ActivityType.TASK_UPDATED,
 					currentUser.getUsername() + " updated this task");
@@ -99,6 +110,11 @@ public class TaskService {
 		Task updatedTask = taskRepository.save(task);
 		activityService.createActivity(updatedTask, currentUser, ActivityType.TASK_ASSIGNED,
 				currentUser.getUsername() + " assigned this task to " + assignee.getUsername());
+		if (!assignee.getId().equals(currentUser.getId())) {
+			notificationService.createNotification(assignee, NotificationType.TASK_ASSIGNED,
+					"Task assigned",
+					currentUser.getUsername() + " assigned you to task " + updatedTask.getTitle());
+		}
 
 		return mapToResponse(updatedTask);
 	}
