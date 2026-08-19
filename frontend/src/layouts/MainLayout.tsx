@@ -45,7 +45,13 @@ export default function MainLayout() {
 	}, [isAuthenticated])
 
 	async function handleMarkNotificationAsRead(notificationId: number) {
+		const notificationToUpdate = notifications.find((notification) => notification.id === notificationId)
+		if (!notificationToUpdate || notificationToUpdate.read) return
+
 		setNotificationsError(null)
+		setNotifications((currentNotifications) => currentNotifications.map((notification) => (
+			notification.id === notificationId ? { ...notification, read: true } : notification
+		)))
 
 		try {
 			const updatedNotification = await markNotificationAsRead(notificationId)
@@ -53,6 +59,9 @@ export default function MainLayout() {
 				notification.id === updatedNotification.id ? updatedNotification : notification
 			)))
 		} catch {
+			setNotifications((currentNotifications) => currentNotifications.map((notification) => (
+				notification.id === notificationId ? notificationToUpdate : notification
+			)))
 			setNotificationsError('Unable to mark this notification as read.')
 		}
 	}

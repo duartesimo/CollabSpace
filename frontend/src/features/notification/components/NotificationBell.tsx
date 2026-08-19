@@ -50,7 +50,7 @@ export default function NotificationBell({
 				aria-controls={dropdownId}
 				aria-expanded={isOpen}
 				onClick={() => setIsOpen((currentValue) => !currentValue)}
-				className="relative flex h-9 w-9 items-center justify-center rounded-full text-slate-300 outline-none transition hover:bg-slate-800/70 hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-400"
+				className={`relative flex h-9 w-9 items-center justify-center rounded-full outline-none transition hover:bg-slate-800/70 hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-400 ${isOpen ? 'bg-slate-800 text-white' : 'text-slate-300'}`}
 			>
 				<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
 					<path strokeLinecap="round" strokeLinejoin="round" d="M15 17H9m9-2V11a6 6 0 1 0-12 0v4l-2 2h16l-2-2Zm-8 5h4" />
@@ -63,7 +63,7 @@ export default function NotificationBell({
 			</button>
 
 			{isOpen && (
-				<div id={dropdownId} className="absolute right-0 top-full z-50 mt-3">
+				<div id={dropdownId} className="fixed inset-x-4 top-16 z-50 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-3">
 					<NotificationDropdown
 						notifications={notifications}
 						loading={loading}
