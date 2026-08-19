@@ -1,6 +1,7 @@
 import client from '../../../api/client'
 import type { Activity } from '../../activity/types/Activity'
 import type { Comment } from '../../comment/types/Comment'
+import type { Notification } from '../../notification/types/Notification'
 import type { Project, ProjectStatus } from '../../project/types/Project'
 import type { ProjectMember } from '../../project/types/ProjectMember'
 import type { Task, TaskStatus } from '../../task/types/Task'
@@ -137,6 +138,16 @@ export const deleteComment = async (commentId: number): Promise<void> => {
 
 export const getTaskActivity = async (taskId: number): Promise<Activity[]> => {
 	const response = await client.get<Activity[]>(`/tasks/${taskId}/activity`)
+	return response.data
+}
+
+export const getNotifications = async (): Promise<Notification[]> => {
+	const response = await client.get<Notification[]>('/notifications')
+	return response.data
+}
+
+export const markNotificationAsRead = async (id: number): Promise<Notification> => {
+	const response = await client.patch<Notification>(`/notifications/${id}/read`)
 	return response.data
 }
 
