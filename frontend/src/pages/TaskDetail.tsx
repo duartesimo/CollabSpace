@@ -9,6 +9,7 @@ import EmptyState from '../components/ui/EmptyState'
 import LoadingState from '../components/ui/LoadingState'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatusBadge from '../components/ui/StatusBadge'
+import UserIdentity from '../components/user/UserIdentity'
 import {
 	assignTask,
 	createTaskComment,
@@ -559,10 +560,7 @@ export default function TaskDetail() {
 									<p className="text-sm text-slate-500">Current assignee</p>
 									{task.assignee ? (
 										<div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-											<div>
-												<p className="font-medium text-white">{task.assignee.username}</p>
-												<p className="mt-1 text-sm text-slate-400">{task.assignee.email}</p>
-											</div>
+											<UserIdentity user={task.assignee} />
 											<button
 												type="button"
 												onClick={() => void handleUnassignTask()}

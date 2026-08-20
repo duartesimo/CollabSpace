@@ -9,6 +9,7 @@ import EmptyState from '../components/ui/EmptyState'
 import LoadingState from '../components/ui/LoadingState'
 import SectionHeader from '../components/ui/SectionHeader'
 import StatusBadge from '../components/ui/StatusBadge'
+import UserIdentity from '../components/user/UserIdentity'
 import {
 	addProjectMember,
 	createProjectTask,
@@ -524,10 +525,7 @@ export default function ProjectDetail() {
 												key={member.userId}
 												className="flex flex-col gap-3 rounded-2xl border border-slate-800 bg-slate-950/40 p-4 sm:flex-row sm:items-center sm:justify-between"
 											>
-												<div>
-													<p className="font-medium text-white">{member.username}</p>
-													<p className="mt-1 text-sm text-slate-400">{member.email}</p>
-												</div>
+												<UserIdentity user={member} />
 												<div className="flex items-center gap-3">
 													<StatusBadge tone={member.role === 'OWNER' ? 'amber' : 'indigo'}>
 														{member.role}

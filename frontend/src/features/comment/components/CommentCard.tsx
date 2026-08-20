@@ -1,3 +1,4 @@
+import UserIdentity from '../../../components/user/UserIdentity'
 import type { Comment } from '../types/Comment'
 
 interface CommentCardProps {
@@ -10,10 +11,7 @@ export default function CommentCard({ comment, onDelete, isDeleting = false }: C
 	return (
 		<div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-4">
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-				<div>
-					<p className="font-medium text-white">{comment.author.username}</p>
-					<p className="mt-1 text-sm text-slate-400">{comment.author.email}</p>
-				</div>
+				<UserIdentity user={comment.author} />
 				{onDelete && (
 					<button
 						type="button"

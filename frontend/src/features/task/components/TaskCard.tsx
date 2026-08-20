@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import StatusBadge from '../../../components/ui/StatusBadge'
+import UserIdentity from '../../../components/user/UserIdentity'
 import type { Task, TaskStatus } from '../types/Task'
 
 interface TaskCardProps {
@@ -34,17 +35,14 @@ export default function TaskCard({ task }: TaskCardProps) {
 				{task.description || 'No description provided for this task yet.'}
 			</p>
 			<div className="mt-auto border-t border-slate-800/80 pt-4">
-				<div className="flex min-w-0 items-center gap-3">
-					<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold text-slate-300">
-						{task.assignee ? task.assignee.username.trim().charAt(0).toUpperCase() || '?' : '—'}
+				{task.assignee ? (
+					<UserIdentity user={task.assignee} />
+				) : (
+					<div className="flex items-center gap-3">
+						<span aria-hidden="true" className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-800 text-xs font-semibold text-slate-400">—</span>
+						<span className="text-sm font-medium text-slate-400">Unassigned</span>
 					</div>
-					<div className="min-w-0">
-						<p className="truncate text-sm font-medium text-slate-300">
-							{task.assignee?.username || 'Unassigned'}
-						</p>
-						{task.assignee && <p className="truncate text-xs text-slate-500">{task.assignee.email}</p>}
-					</div>
-				</div>
+				)}
 				<p className="mt-3 text-xs text-slate-600">
 					Created {new Date(task.createdAt).toLocaleDateString()}
 				</p>
