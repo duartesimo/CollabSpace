@@ -47,7 +47,7 @@ export default function Home() {
 					<div className="mx-auto max-w-5xl text-center">
 						<StatusBadge className="px-4 py-1.5">CollabSpace</StatusBadge>
 						<h1 id="landing-title" className="mx-auto mt-6 max-w-4xl text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-							Turn team plans into finished work—without losing the context.
+							Turn team plans into finished work, without losing the context.
 						</h1>
 						<p className="mx-auto mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
 							Give teams a workspace, organize each initiative into projects, and move tasks from idea to done. Comments and activity preserve the story while notifications keep everyone aware.
